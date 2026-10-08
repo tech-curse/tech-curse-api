@@ -9,6 +9,22 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### ✨ Adicionado
+
+- `.env.example` com todas as variáveis de configuração, sem valores.
+- `.gitattributes` e `.editorconfig` fixando LF, para que o `dotnet format --verify-no-changes` dê o mesmo resultado no Windows e no Linux.
+- README com seção "Como testar" e links para a organização `tech-curse`.
+
+### 🔄 Alterado
+
+- README corrigido: o lockout do Identity está configurado, mas o login ainda não o aplica (`lockoutOnFailure: false`).
+- README e CLAUDE.md documentam que rodar localmente exige gravar as connection strings e a `Jwt:SigningKey` em User Secrets: nenhuma credencial é versionada, nem de desenvolvimento.
+
+### 🗑️ Removido
+
+- `LICENSE`: o repositório deixa de ser distribuído sob Apache 2.0.
+- `docs/diagram.png`: desatualizado (mostrava SQL Server e Seq); o diagrama em Mermaid do README é a referência.
+
 ---
 
 ## [3.0.0] - 2026-10-08

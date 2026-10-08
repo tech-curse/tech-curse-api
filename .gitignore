@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Arquivos de variáveis de ambiente (Segredos locais)
 .env
 *.env
+.superpowers/
