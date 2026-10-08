@@ -67,7 +67,7 @@ Quatro projetos em `src/`, no estilo do template `dotnet new ca-sln` (pasta com 
 - **Infrastructure** — `TechCurseContext`, repositórios, Redis, Identity/JWT e o adaptador de gateway de pagamento. Depende de Application (implementa suas interfaces).
 - **API** — controllers finos, middlewares e os `Configuration/*Setup.cs` (extension methods de DI: Serilog, EF Core, Identity/JWT, Redis, Data Protection, rate limiting, Swagger).
 
-Desde a 3.0.0 essas regras são só convenção: o projeto de testes de arquitetura saiu junto com o resto da suíte (ver "Testes").
+Desde a importação do repositório essas regras são só convenção: o projeto de testes de arquitetura saiu junto com o resto da suíte (ver "Testes").
 
 ### Fluxo de uma requisição
 
@@ -106,7 +106,7 @@ Em variáveis de ambiente essas chaves chegam como `Jwt__SigningKey`, `Connectio
 
 ## Testes
 
-**Não há testes desde a 3.0.0.** Os quatro projetos de `tests/` (unitários de Domain e Application, integração da Api e arquitetura) foram removidos para que a estrutura seja reconstruída do zero, e com eles os ganchos que existiam em `src/` só para a suíte: a chave `UseInMemoryDatabase` no `EFCoreSetup`, a guarda `IsRelational()` em volta do `Migrate()` e o `public partial class Program { }`.
+**Não há testes desde a importação do repositório.** Os quatro projetos de `tests/` (unitários de Domain e Application, integração da Api e arquitetura) foram removidos para que a estrutura seja reconstruída do zero, e com eles os ganchos que existiam em `src/` só para a suíte: a chave `UseInMemoryDatabase` no `EFCoreSetup`, a guarda `IsRelational()` em volta do `Migrate()` e o `public partial class Program { }`.
 
 Ao criar uma nova slice, o caminho completo é: `Command`/`Query` + `Handler` + `Validator` na pasta da feature → interface de repositório em `Application/Interfaces` → implementação em `Infrastructure/Repositories` (registrada em `Infrastructure/DependencyInjection.cs`) → action no controller com `SwaggerOperation`/`SwaggerResponse`.
 
@@ -129,7 +129,7 @@ Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, qu
 
 ## Imagem e entrega
 
-**Não há imagem, compose nem pipeline desde a 3.0.0** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml` e `.github/workflows/ci-cd.yml` foram removidos para serem refeitos. Nenhuma imagem é publicada a partir deste repositório ainda.
+**Não há imagem, compose nem pipeline desde a importação do repositório** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml` e `.github/workflows/ci-cd.yml` foram removidos para serem refeitos. Nenhuma imagem é publicada a partir deste repositório ainda.
 
 `InvariantGlobalization` continua `false` no `Directory.Build.props` por herança: o `Microsoft.Data.SqlClient` exigia ICU, e a imagem anterior usava a variante `chiseled-extra` por isso. O Npgsql em princípio não depende do ICU, mas isso nunca foi validado. Se a nova imagem usar um runtime sem ICU, mexa nas duas coisas juntas e valide o `Migrate()` e o health check.
 
@@ -153,7 +153,7 @@ git tag -a vX.Y.Z -m "Release X.Y.Z"
 git push origin vX.Y.Z
 ```
 
-O repositório foi importado sem histórico: não há tags de versões anteriores aqui.
+O repositório foi importado sem histórico, e a versão recomeçou em `1.0.0`: a primeira tag (`v1.0.0`) sai no primeiro deploy em produção. O Swagger lê a versão do `AssemblyInformationalVersionAttribute`, sem o sufixo `+<sha>` que o SDK acrescenta; não fixe versão em código.
 
 ## Formatação
 
@@ -188,7 +188,7 @@ A navegação `Payment.Student` é obrigatória, então o EF traduz o `Include` 
 
 Não há lazy loading para salvar de um `Include` esquecido: `Microsoft.EntityFrameworkCore.Proxies` está referenciado, mas `UseLazyLoadingProxies()` nunca é chamado e as navegações não são `virtual`.
 
-**Nada protege isso hoje.** Até a 2.x, um teste de integração (`PaymentNavigationTests`) exercitava `GetByIdAsync` e `GetByEnrollmentIdAsync` com aluno ativo e removido; teste unitário com repositório mockado não pega a falha. A nova suíte precisa cobrir esses dois caminhos.
+**Nada protege isso hoje.** No projeto anterior a esta importação, um teste de integração (`PaymentNavigationTests`) exercitava `GetByIdAsync` e `GetByEnrollmentIdAsync` com aluno ativo e removido; teste unitário com repositório mockado não pega a falha. A nova suíte precisa cobrir esses dois caminhos.
 
 ## Branches
 

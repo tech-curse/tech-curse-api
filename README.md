@@ -185,7 +185,7 @@ O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/); a versão
 - **Migrations aplicadas no startup.** Uma falha de migration impede a API de subir. Com várias réplicas, o caminho adequado seria um job de migração dedicado antes do rollout.
 - **Rate limiting em memória, por instância.** Com N réplicas, o limite efetivo é N vezes o configurado.
 - **Um refresh token por usuário.** Um login em outro dispositivo invalida a sessão anterior.
-- **Sem testes automatizados, imagem de contêiner nem pipeline.** Os três foram removidos na 3.0.0 para serem reconstruídos do zero.
+- **Sem testes automatizados, imagem de contêiner nem pipeline.** Os três estão sendo reconstruídos do zero.
 
 ## Contribuindo
 

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Tech Curse API",
-    "description": "Collection da Tech Curse API v2.0.0.\n\nAutenticacao: rode Auth > Login. O script de teste grava accessToken e refreshToken nas variaveis da collection, e as demais requisicoes usam o accessToken automaticamente via Bearer.\n\nO baseUrl padrão, http://localhost:5130, corresponde ao \"dotnet run\"; ajuste conforme o ambiente.",
+    "description": "Collection da Tech Curse API.\n\nAutenticacao: rode Auth > Login. O script de teste grava accessToken e refreshToken nas variaveis da collection, e as demais requisicoes usam o accessToken automaticamente via Bearer.\n\nO baseUrl padrão, http://localhost:5130, corresponde ao \"dotnet run\"; ajuste conforme o ambiente.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_postman_id": "a18d56df-42b3-4881-8698-dbfa4aefbb25"
   },
