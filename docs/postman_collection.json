@@ -1,0 +1,983 @@
+{
+  "info": {
+    "name": "Tech Curse API",
+    "description": "Collection da Tech Curse API v2.0.0.\n\nAutenticacao: rode Auth > Login. O script de teste grava accessToken e refreshToken nas variaveis da collection, e as demais requisicoes usam o accessToken automaticamente via Bearer.\n\nO baseUrl padrão, http://localhost:5130, corresponde ao \"dotnet run\"; ajuste conforme o ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "a18d56df-42b3-4881-8698-dbfa4aefbb25"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Rate limit proprio: 10 requisicoes por minuto por IP. Excedido, devolve 429 com Retry-After.",
+      "item": [
+        {
+          "name": "Registrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Auth",
+                "register"
+              ]
+            },
+            "description": "Cria sempre um Student; o role enviado no corpo é ignorado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AlunoExemplo\",\n  \"email\": \"aluno@techcurse.com\",\n  \"password\": \"SenhaForte1!\",\n  \"confirmPassword\": \"SenhaForte1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const corpo = pm.response.json();",
+                  "if (corpo.accessToken) {",
+                  "    pm.collectionVariables.set(\"accessToken\", corpo.accessToken);",
+                  "}",
+                  "if (corpo.refreshToken) {",
+                  "    pm.collectionVariables.set(\"refreshToken\", corpo.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar usuário (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Auth/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Auth",
+                "users"
+              ]
+            },
+            "description": "Admin. Cria usuário com a role informada (Admin, Instructor ou Student). Requer token de Admin: faça login com o Admin semeado em Development.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"InstrutorExemplo\",\n  \"email\": \"instrutor@techcurse.com\",\n  \"role\": \"Instructor\",\n  \"password\": \"SenhaForte1!\",\n  \"confirmPassword\": \"SenhaForte1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Auth",
+                "login"
+              ]
+            },
+            "description": "Grava accessToken e refreshToken nas variaveis da collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aluno@techcurse.com\",\n  \"password\": \"SenhaForte1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const corpo = pm.response.json();",
+                  "if (corpo.accessToken) {",
+                  "    pm.collectionVariables.set(\"accessToken\", corpo.accessToken);",
+                  "}",
+                  "if (corpo.refreshToken) {",
+                  "    pm.collectionVariables.set(\"refreshToken\", corpo.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Auth",
+                "refresh"
+              ]
+            },
+            "description": "O refresh token e rotacionado a cada uso e vale 7 dias.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"{{accessToken}}\",\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const corpo = pm.response.json();",
+                  "if (corpo.accessToken) {",
+                  "    pm.collectionVariables.set(\"accessToken\", corpo.accessToken);",
+                  "}",
+                  "if (corpo.refreshToken) {",
+                  "    pm.collectionVariables.set(\"refreshToken\", corpo.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Course",
+      "item": [
+        {
+          "name": "Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Course?Categoria=&PageNumber=1&PageSize=10&SortBy=Id&SortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Course"
+              ],
+              "query": [
+                {
+                  "key": "Categoria",
+                  "value": ""
+                },
+                {
+                  "key": "PageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "PageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "SortBy",
+                  "value": "Id"
+                },
+                {
+                  "key": "SortDirection",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Autenticado. PageSize e limitado a 50."
+          },
+          "response": []
+        },
+        {
+          "name": "Criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Course",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Course"
+              ]
+            },
+            "description": "Admin ou Instructor.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Clean Architecture na pratica\",\n  \"descricao\": \"Curso sobre separacao de camadas em .NET\",\n  \"categoria\": \"Arquitetura\",\n  \"cargaHoraria\": 40\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obter por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Course/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Course",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{courseId}}"
+                }
+              ]
+            },
+            "description": "Autenticado."
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Course/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Course",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{courseId}}"
+                }
+              ]
+            },
+            "description": "Somente Admin.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"titulo\": \"Clean Architecture na pratica\",\n  \"descricao\": \"Descricao atualizada\",\n  \"categoria\": \"Arquitetura\",\n  \"cargaHoraria\": 60\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Course/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Course",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{courseId}}"
+                }
+              ]
+            },
+            "description": "Somente Admin."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "item": [
+        {
+          "name": "Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Student?PageNumber=1&PageSize=10&SortBy=Id&SortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Student"
+              ],
+              "query": [
+                {
+                  "key": "PageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "PageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "SortBy",
+                  "value": "Id"
+                },
+                {
+                  "key": "SortDirection",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Somente Admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Student",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Student"
+              ]
+            },
+            "description": "Somente Admin.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Aluno Exemplo\",\n  \"email\": \"aluno@techcurse.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obter por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Student/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Student",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "Admin, ou o proprio aluno."
+          },
+          "response": []
+        },
+        {
+          "name": "Matriculas do aluno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Student/:id/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Student",
+                ":id",
+                "enrollments"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "Admin, ou o proprio aluno."
+          },
+          "response": []
+        },
+        {
+          "name": "Meu perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Student/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Student",
+                "me"
+              ]
+            },
+            "description": "Somente role Student. Resolve o aluno pelo JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Student/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Student",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "Admin, ou o proprio aluno.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Aluno Exemplo Atualizado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Student/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Student",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "Somente Admin. Remocao logica (soft delete)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Enrollment",
+      "description": "O controller expoe apenas a criacao. Para consultar matriculas de um aluno, use Student > Matriculas do aluno.",
+      "item": [
+        {
+          "name": "Matricular",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Enrollment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Enrollment"
+              ]
+            },
+            "description": "Autenticado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": 1,\n  \"studentId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "description": "As tres escritas exigem o header Idempotency-Key; sem ele a resposta e 400. A resposta fica replicada no Redis por 6 minutos.",
+      "item": [
+        {
+          "name": "Listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Payment?PageNumber=1&PageSize=10&SortBy=Id&SortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Payment"
+              ],
+              "query": [
+                {
+                  "key": "PageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "PageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "SortBy",
+                  "value": "Id"
+                },
+                {
+                  "key": "SortDirection",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Somente Admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Obter por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Payment/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Payment",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{paymentId}}"
+                }
+              ]
+            },
+            "description": "Admin, ou o proprio aluno."
+          },
+          "response": []
+        },
+        {
+          "name": "Por aluno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Payment/student/:studentId?PageNumber=1&PageSize=10&SortBy=Id&SortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Payment",
+                "student",
+                ":studentId"
+              ],
+              "query": [
+                {
+                  "key": "PageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "PageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "SortBy",
+                  "value": "Id"
+                },
+                {
+                  "key": "SortDirection",
+                  "value": "asc"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "studentId",
+                  "value": "{{studentId}}"
+                }
+              ]
+            },
+            "description": "Admin, ou o proprio aluno."
+          },
+          "response": []
+        },
+        {
+          "name": "Por matricula",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Payment/enrollment/:enrollmentId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Payment",
+                "enrollment",
+                ":enrollmentId"
+              ],
+              "variable": [
+                {
+                  "key": "enrollmentId",
+                  "value": "{{enrollmentId}}"
+                }
+              ]
+            },
+            "description": "Admin, ou o proprio aluno."
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Payment"
+              ]
+            },
+            "description": "Somente Admin. Cria a intencao de pagamento com status Pending.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enrollmentId\": 1,\n  \"amount\": 199.9\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Processar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Payment/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Payment",
+                "process"
+              ]
+            },
+            "description": "Somente Admin. type aceita CreditCard, Pix ou Boleto.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": 1,\n  \"type\": \"Pix\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Estornar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tech-curse/Payment/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tech-curse",
+                "Payment",
+                "refund"
+              ]
+            },
+            "description": "Somente Admin. So estorna pagamento com status Paid.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": 1,\n  \"reason\": \"Solicitacao do aluno\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "live"
+              ]
+            },
+            "description": "O processo esta de pe. Nao consulta banco nem cache. Responde texto puro.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            },
+            "description": "Agrega PostgreSQL e Redis. Anonimo recebe apenas {\"status\":\"...\"}; com JWT de Admin, o JSON traz o detalhe de cada verificacao."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5130",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "courseId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "studentId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "enrollmentId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}
