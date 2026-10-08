@@ -17,7 +17,7 @@ API REST em .NET 10 / C# 14 para uma plataforma de cursos (cursos, estudantes, m
 
 O banco foi SQL Server até setembro de 2026. A troca foi de schema, não de dados — não havia produção — e as migrations foram regeradas do zero contra o Npgsql; não existe caminho de upgrade a partir de um banco SQL Server. Ver "Armadilhas conhecidas" para o que a troca ensinou.
 
-Material de apoio (diagrama de arquitetura, collection do Postman) fica em `docs/`.
+A collection do Postman fica em `docs/`. O diagrama de arquitetura vive no README, em Mermaid, para não envelhecer separado do texto.
 
 ## Comandos
 
@@ -33,10 +33,12 @@ Rodar a API no host (Swagger em http://localhost:5130/swagger, liveness em `/hea
 dotnet run --project src/Api
 ```
 
-O `appsettings.Development.json` espera o Postgres na porta **5433** e o Redis na 6380 — portas herdadas do compose removido na 3.0.0, escolhidas para coexistir com instâncias pessoais nas portas padrão. Para usar outro endereço, não edite o arquivo versionado — o repositório é público. Grave em User Secrets, que o host carrega em `Development` por cima do `appsettings.Development.json` (o `UserSecretsId` já existe no `TechCurse.Api.csproj`):
+**Nenhuma credencial é versionada**, nem de desenvolvimento: o `appsettings.Development.json` só traz `Jwt:Issuer`, `Jwt:Audience` e `Cors:AllowedOrigins`. Connection strings e `Jwt:SigningKey` vão para User Secrets, que o host carrega em `Development` por cima do `appsettings.Development.json` (o `UserSecretsId` já existe no `TechCurse.Api.csproj`). O repositório é público: não grave valor real em arquivo versionado, nem para "só testar". Toda variável nova entra no `.env.example`, sem valor.
 
 ```bash
 dotnet user-secrets set "ConnectionStrings:APITechCurse" "Host=localhost;Port=5432;Database=APITechCurse;Username=<usuario>;Password=<senha>;" --project src/Api
+dotnet user-secrets set "ConnectionStrings:RedisCache" "localhost:6379,password=<senha>,abortConnect=false" --project src/Api
+dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/Api
 ```
 
 O `dotnet ef` monta o host da API e lê os mesmos secrets, então `database update` sem `--connection` vai para onde o `dotnet run` iria.
@@ -65,7 +67,7 @@ Quatro projetos em `src/`, no estilo do template `dotnet new ca-sln` (pasta com 
 - **Infrastructure** — `TechCurseContext`, repositórios, Redis, Identity/JWT e o adaptador de gateway de pagamento. Depende de Application (implementa suas interfaces).
 - **API** — controllers finos, middlewares e os `Configuration/*Setup.cs` (extension methods de DI: Serilog, EF Core, Identity/JWT, Redis, Data Protection, rate limiting, Swagger).
 
-Desde a 3.0.0 essas regras são só convenção: o projeto de testes de arquitetura saiu junto com o resto da suíte (ver "Testes").
+Desde a importação do repositório essas regras são só convenção: o projeto de testes de arquitetura saiu junto com o resto da suíte (ver "Testes").
 
 ### Fluxo de uma requisição
 
@@ -104,7 +106,7 @@ Em variáveis de ambiente essas chaves chegam como `Jwt__SigningKey`, `Connectio
 
 ## Testes
 
-**Não há testes desde a 3.0.0.** Os quatro projetos de `tests/` (unitários de Domain e Application, integração da Api e arquitetura) foram removidos para que a estrutura seja reconstruída do zero, e com eles os ganchos que existiam em `src/` só para a suíte: a chave `UseInMemoryDatabase` no `EFCoreSetup`, a guarda `IsRelational()` em volta do `Migrate()` e o `public partial class Program { }`.
+**Não há testes desde a importação do repositório.** Os quatro projetos de `tests/` (unitários de Domain e Application, integração da Api e arquitetura) foram removidos para que a estrutura seja reconstruída do zero, e com eles os ganchos que existiam em `src/` só para a suíte: a chave `UseInMemoryDatabase` no `EFCoreSetup`, a guarda `IsRelational()` em volta do `Migrate()` e o `public partial class Program { }`.
 
 Ao criar uma nova slice, o caminho completo é: `Command`/`Query` + `Handler` + `Validator` na pasta da feature → interface de repositório em `Application/Interfaces` → implementação em `Infrastructure/Repositories` (registrada em `Infrastructure/DependencyInjection.cs`) → action no controller com `SwaggerOperation`/`SwaggerResponse`.
 
@@ -120,14 +122,14 @@ O que a suíte anterior ensinou e vale para a próxima:
 
 Dois pontos em que a aplicação **se recusa a subir**, ambos deliberados:
 
-- **`AddInfrastructure` aborta em Production.** Não existe adaptador de gateway de pagamento real no projeto — só `SimulatedPaymentGatewayAdapter`, que fabrica respostas. Registrá-lo em Production faria a API confirmar cobranças que nunca aconteceram, então `src/Infrastructure/DependencyInjection.cs` lança `InvalidOperationException` quando `environment.IsProduction()`. O throw acontece na montagem do container, antes de `builder.Build()`. Consequência prática: **subir com `ASPNETCORE_ENVIRONMENT=Production` derruba a aplicação inteira**, não apenas o módulo financeiro. Implementar um gateway real é pré-requisito para produção.
+- **`AddInfrastructure` aborta em Production.** Não existe adaptador de gateway de pagamento real no projeto — só `SimulatedPaymentGatewayAdapter`, que fabrica respostas. Registrá-lo em Production faria a API confirmar cobranças que nunca aconteceram, então `src/Infrastructure/DependencyInjection.cs` lança `InvalidOperationException` quando `environment.IsProduction()`. O throw acontece na montagem do container, antes de `builder.Build()`. Consequência prática: **subir com `ASPNETCORE_ENVIRONMENT=Production` derruba a aplicação inteira**, não apenas o módulo financeiro. **Decisão de 2026-10-08:** o módulo de pagamentos sai de produção até existir um gateway real ([issue #1](https://github.com/tech-curse/tech-curse-api/issues/1)); a trava será trocada por isso antes do primeiro deploy, sem nunca registrar o adaptador simulado em `Production`.
 - **Falha de migration é fatal.** O bloco em `src/Api/Program.cs` loga e **relança**. Engolir a exceção deixava a API no ar servindo requisições contra um banco sem schema — foi exatamente assim que o bug de globalização passou despercebido.
 
 Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, que sobem juntas e disputam o mesmo banco. O caminho convencional é um job de migração dedicado antes do rollout. Não implementado de propósito.
 
 ## Imagem e entrega
 
-**Não há imagem, compose nem pipeline desde a 3.0.0** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml`, `.env.example` e `.github/workflows/ci-cd.yml` foram removidos para serem refeitos. As imagens já publicadas no GHCR continuam lá; nada novo é publicado.
+**Não há imagem, compose nem pipeline desde a importação do repositório** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml` e `.github/workflows/ci-cd.yml` foram removidos para serem refeitos. Nenhuma imagem é publicada a partir deste repositório ainda.
 
 `InvariantGlobalization` continua `false` no `Directory.Build.props` por herança: o `Microsoft.Data.SqlClient` exigia ICU, e a imagem anterior usava a variante `chiseled-extra` por isso. O Npgsql em princípio não depende do ICU, mas isso nunca foi validado. Se a nova imagem usar um runtime sem ICU, mexa nas duas coisas juntas e valide o `Migrate()` e o health check.
 
@@ -137,7 +139,7 @@ O que a entrega anterior ensinou:
 - **Publish com `--no-restore` quebra com cache de camadas.** O passo de restore pode vir pronto do cache num runner novo, com o cache mount de NuGet vazio, e o publish falha com `NETSDK1064`. Com `PublishReadyToRun=true`, o RID (`--use-current-runtime`) precisa estar no restore e no publish, mais `--no-self-contained` no publish.
 - **`.dockerignore` casa a partir da raiz do contexto**: mover um arquivo pode fazer um padrão deixar de pegá-lo.
 - **Imagem chiseled não tem shell**: não comporta `HEALTHCHECK` interno nem `depends_on: service_healthy` para a API; a sondagem tem que ser externa.
-- **O GHCR exige nome de imagem em minúsculas**, e o dono do repositório é `Liuizn`.
+- **O GHCR exige nome de imagem em minúsculas**. As imagens deste repositório vão para `ghcr.io/tech-curse/tech-curse-api`, sempre com tag imutável (versão ou SHA), nunca `latest` em produção.
 - **Smoke test antes do push**: construir com `load: true`, subir, sondar `/health/ready` e só então fazer login e `docker push` dos mesmos bits.
 
 ## Versionamento
@@ -151,11 +153,13 @@ git tag -a vX.Y.Z -m "Release X.Y.Z"
 git push origin vX.Y.Z
 ```
 
-As tags anteriores a `v2.0.0` (`v1.0`, `v1.2`, `v.1.1`) **não são SemVer válidas** — faltam componentes ou têm pontuação errada. Não foram reescritas; a conformidade começa na `v2.0.0`.
+O repositório foi importado sem histórico, e a versão recomeçou em `1.0.0`: a primeira tag (`v1.0.0`) sai no primeiro deploy em produção. O Swagger lê a versão do `AssemblyInformationalVersionAttribute`, sem o sufixo `+<sha>` que o SDK acrescenta; não fixe versão em código.
 
 ## Formatação
 
 `.editorconfig` na raiz define ordenação de `using`, chaves em Allman e severidade dos diagnósticos de nullable. `dotnet format TechCurse.slnx --verify-no-changes` passa limpo hoje — rode `dotnet format` antes de commitar para não gerar ruído de diff. Não há pipeline que a imponha.
+
+Final de linha é **LF** em todo o repositório: `end_of_line = lf` no `.editorconfig` e `* text=auto eol=lf` no `.gitattributes`. As duas regras andam juntas. O índice sempre guardou LF; com `end_of_line = crlf`, o `dotnet format` passava num Windows com `core.autocrlf=true` e falharia em todos os arquivos num runner Linux.
 
 ## Armadilhas conhecidas
 
@@ -184,10 +188,14 @@ A navegação `Payment.Student` é obrigatória, então o EF traduz o `Include` 
 
 Não há lazy loading para salvar de um `Include` esquecido: `Microsoft.EntityFrameworkCore.Proxies` está referenciado, mas `UseLazyLoadingProxies()` nunca é chamado e as navegações não são `virtual`.
 
-**Nada protege isso hoje.** Até a 2.x, um teste de integração (`PaymentNavigationTests`) exercitava `GetByIdAsync` e `GetByEnrollmentIdAsync` com aluno ativo e removido; teste unitário com repositório mockado não pega a falha. A nova suíte precisa cobrir esses dois caminhos.
+**Nada protege isso hoje.** No projeto anterior a esta importação, um teste de integração (`PaymentNavigationTests`) exercitava `GetByIdAsync` e `GetByEnrollmentIdAsync` com aluno ativo e removido; teste unitário com repositório mockado não pega a falha. A nova suíte precisa cobrir esses dois caminhos.
 
 ## Branches
 
-O remoto tem só `main`. A antiga `tech-curse_v1.1`, já integrada à `main`, foi apagada e preservada na tag `archive/tech-curse_v1.1`. Trabalhe em branch de feature a partir de `main` e abra PR para `main`, salvo instrução em contrário. Commits seguem Conventional Commits em pt-BR (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`, `style:`, `build:`, `ci:`).
+Repositório `tech-curse/tech-curse-api`, importado sem histórico. Desenvolvimento trunk-based: branch curta a partir de `main`, PR com título em Conventional Commits e **squash merge**. A `main` está sempre implantável; nada de push direto. Commits em pt-BR (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`, `style:`, `build:`, `ci:`), sem linhas de atribuição de IA em commits ou PRs. Mudanças notáveis entram no `CHANGELOG.md`, seção `[Não lançado]`, no mesmo PR.
 
-Existe um ruleset na `main` que avisa sobre pull request em push direto, mas **não bloqueia** — a mensagem `Changes must be made through a pull request` aparece no push e o ref é atualizado assim mesmo.
+A proteção da `main` (PR obrigatório, checks obrigatórios, sem push direto) só é ativada depois que o CI existir e estiver verde.
+
+Templates de issue e de PR, `CONTRIBUTING.md` e `SECURITY.md` vêm do repositório `tech-curse/.github` da organização; não duplique aqui.
+
+O plugin `superpowers` fica habilitado para o repositório em `.claude/settings.json`; o espaço de trabalho dele (`.superpowers/`) não é versionado.

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.OpenApi;
 
 namespace TechCurse.Api.Configuration;
@@ -8,12 +9,17 @@ public static class SwaggerDocumentationSetup
     {
         string securitySchemeName = "Bearer";
 
+        var versao = typeof(SwaggerDocumentationSetup).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion
+            .Split('+')[0] ?? "desconhecida";
+
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "Tech Curse API",
-                Version = "2.0.0",
+                Version = versao,
                 Description = "API para gestão de cursos e alunos baseada em Clean Architecture."
             });
 
