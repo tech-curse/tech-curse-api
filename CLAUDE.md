@@ -121,6 +121,8 @@ Dois projetos em `tests/`, com propriedades e pacotes comuns em `tests/Directory
 - `TechCurse.Api.IntegrationTests` — a API inteira por `WebApplicationFactory<Program>` (`TechCurseApiFactory`), contra PostgreSQL 17 e Redis 7 reais do Testcontainers. Os contêineres sobem **uma vez por execução** (`AmbienteDeTeste`, registrado como *assembly fixture* do xUnit v3), e cada teste herda de `TesteDeIntegracao`, que limpa o banco (Respawn, preservando `__EFMigrationsHistory`, `AspNetRoles` e `DataProtectionKeys`) e o Redis antes de rodar. Por compartilharem o banco, os testes rodam em série (`Parallelization(Mode = ParallelMode.None)`).
 - `TechCurse.UnitTests` — regras puras, sem I/O.
 
+**Imagens dos testes vêm do ECR Public da AWS** (`public.ecr.aws/docker/library/postgres:17` e `.../redis:7`), o espelho das imagens oficiais do Docker Hub. O Docker Hub limita pulls anônimos por IP, e os runners do GitHub compartilham IPs: a suíte falhava de forma intermitente com `toomanyrequests`. O **Ryuk** (contêiner de limpeza do Testcontainers) fica desligado (`TestcontainersSettings.ResourceReaperEnabled = false`), porque só existe no Docker Hub; o `AmbienteDeTeste` remove os contêineres ao final. Se um processo de teste for morto à força, limpe com `docker rm -f $(docker ps -aq --filter label=org.testcontainers=true)`.
+
 Convenções:
 
 - **Todo teste declara o cenário** com `[Trait("Especificacao", "<ID>")]`. `scripts/rastreabilidade.py` lista os cenários implementados sem teste e falha se um teste citar ID inexistente; no CI o relatório vai para o resumo da execução.
