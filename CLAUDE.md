@@ -17,7 +17,17 @@ API REST em .NET 10 / C# 14 para uma plataforma de cursos (cursos, estudantes, m
 
 O banco foi SQL Server até setembro de 2026. A troca foi de schema, não de dados — não havia produção — e as migrations foram regeradas do zero contra o Npgsql; não existe caminho de upgrade a partir de um banco SQL Server. Ver "Armadilhas conhecidas" para o que a troca ensinou.
 
-A collection do Postman fica em `docs/`. O diagrama de arquitetura vive no README, em Mermaid, para não envelhecer separado do texto.
+A collection do Postman fica em `docs/`.
+
+### Twelve-Factor
+
+A API segue o [Twelve-Factor App](https://12factor.net/pt_br/); o checklist por fator está em [`docs/twelve-factor.md`](docs/twelve-factor.md). Regras práticas ao implementar:
+
+- **Configuração nova** entra como chave em `appsettings.json` com o padrão seguro (funcionalidade desligada, valor que vale em qualquer ambiente) e, se precisar de valor por ambiente, no `.env.example` como variável sem valor. Nada de `appsettings.<Ambiente>.json` nem User Secrets (os que ainda existem saem na Fase 4, `TRV-034`).
+- **Nunca use `IsDevelopment()`, `IsProduction()` ou `IsEnvironment()` para ligar ou desligar funcionalidade.** O nome do ambiente só aparece em travas de segurança, como segunda barreira (`TRV-033`, `AUTH-038`).
+- **Estado fica fora do processo**: PostgreSQL ou Redis. A única exceção aceita é o rate limiting em memória, enquanto houver uma réplica.
+- **Logs só no stdout**, via `ILogger`/Serilog. Nunca escreva arquivo de log nem envie logs por conta própria; a exportação é do OpenTelemetry, configurado por variáveis `OTEL_*` (`TRV-038`).
+- **Tarefa administrativa** (migration, criação de Admin, correção de dados) é um comando avulso que roda com a mesma imagem e a mesma configuração da release, nunca código no startup (`TRV-024`, `TRV-035`). O diagrama de arquitetura vive no README, em Mermaid, para não envelhecer separado do texto.
 
 ## Comandos
 
