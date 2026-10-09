@@ -15,7 +15,7 @@ Registrar que um aluno está inscrito num curso. A matrícula é o vínculo que 
 
 | Método e rota | Acesso | Corpo | Sucesso |
 | --- | --- | --- | --- |
-| `POST /tech-curse/Enrollment` | `Student`, `Admin` | `{ courseId, studentId }` | `201` (ver `MAT-001`) |
+| `POST /tech-curse/Enrollment` | `Student`, `Admin` | `{ courseId, studentId }` | `201` `{ "mensagem": "Aluno matriculado com sucesso." }` |
 
 - Para um `Student`, o `studentId` do corpo é ignorado: a matrícula é sempre dele mesmo (identificado pelo token). O campo continua obrigatório e maior que zero; o web envia o id do próprio perfil.
 - Para um `Admin`, o `studentId` diz quem será matriculado.
@@ -28,8 +28,7 @@ Registrar que um aluno está inscrito num curso. A matrícula é o vínculo que 
 *Quando* ele envia `POST /Enrollment` com o `courseId` do curso
 *Então* a resposta é `201`, com `{ "mensagem": "Aluno matriculado com sucesso." }`
 *E* o curso aparece em `GET /Student/{id}/enrollments` dele, com `matriculaAtiva` = `true`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a resposta é `202 Accepted`, que significa "aceito para processar depois". A matrícula, porém, já está gravada quando a resposta sai. O web não lê o status nem o corpo, então a troca não o afeta.
+**Status:** implementado
 
 **MAT-002: Aluno só matricula a si mesmo**
 *Dado* um aluno que envia o `studentId` de outro aluno
@@ -41,7 +40,7 @@ Registrar que um aluno está inscrito num curso. A matrícula é o vínculo que 
 *Dado* um aluno ativo
 *Quando* um `Admin` envia `POST /Enrollment` com o `studentId` e o `courseId`
 *Então* o aluno fica matriculado no curso
-**Status:** implementado (com o status `201` do `MAT-001`)
+**Status:** implementado
 
 **MAT-004: Só aluno e Admin criam matrículas**
 *Quando* um `Instructor` chama `POST /Enrollment`
@@ -61,8 +60,7 @@ Registrar que um aluno está inscrito num curso. A matrícula é o vínculo que 
 *Dado* um aluno sem matrícula num curso
 *Quando* duas requisições de matrícula no mesmo curso chegam ao mesmo tempo (um clique duplo, por exemplo)
 *Então* uma resposta é `201` e a outra `409`, e existe uma matrícula só
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a unicidade é checada só no código, sem índice único em (aluno, curso) no banco. As duas requisições passam pela checagem antes de qualquer uma gravar, e o aluno fica com duas matrículas no mesmo curso.
+**Status:** implementado
 
 **MAT-007: Curso inexistente**
 *Quando* o `courseId` não existe
@@ -85,13 +83,6 @@ Registrar que um aluno está inscrito num curso. A matrícula é o vínculo que 
 *Dado* um curso com matrícula
 *Então* a remoção do curso é recusada (`CUR-015`)
 **Status:** implementado
-
-## Divergências
-
-| Cenário | Hoje | Proposta | Quando |
-| --- | --- | --- | --- |
-| `MAT-001` | `202 Accepted` para uma operação já concluída | `201 Created` | Fase 3 |
-| `MAT-006` | Clique duplo cria duas matrículas no mesmo curso | Índice único em (aluno, curso) no banco, com a violação traduzida para `409` | Fase 3 |
 
 ## Fora de escopo
 
