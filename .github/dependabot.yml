@@ -13,6 +13,9 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    ignore:
+      - dependency-name: "MediatR"
+        update-types: ["version-update:semver-major"]
     groups:
       nuget-menores:
         update-types: [minor, patch]
