@@ -32,8 +32,8 @@ builder.Services.AddSwaggerDocumentationSetup(builder.Configuration);
 
 var app = builder.Build();
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseCors(CorsSetup.PoliticaFrontend);
 

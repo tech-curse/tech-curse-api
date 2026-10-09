@@ -75,8 +75,7 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 *Quando* acontece uma exceção que não é de domínio
 *Então* a resposta é `500`, com `detail` = `"Ocorreu um erro inesperado. Informe o código de correlação ao suporte."` e o mesmo `X-Correlation-ID` registrado no log
 *E* a exceção completa vai apenas para o log
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** o `detail` traz `exception.Message`, que pode conter mensagens do Npgsql, do Redis ou da biblioteca de JWT, com nome de servidor e detalhes de infraestrutura (ver `AUTH-027`).
+**Status:** implementado
 
 ### Correlação
 
@@ -337,7 +336,6 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `TRV-004` | `500` devolve a mensagem interna da exceção | Mensagem genérica com o código de correlação; detalhe só no log | Fase 3 |
 | `TRV-031` | Página `0` dá `500`; tamanho `0` gera `totalPages` sem sentido | `422` para página ou tamanho menor que `1` | Fase 3 |
 | `TRV-013` | Limite por IP vê só o IP do proxy | Tratar `X-Forwarded-For` vindo do Nginx | Fase 6 |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |

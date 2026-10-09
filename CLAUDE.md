@@ -81,11 +81,11 @@ Desde a importação do repositório essas regras são só convenção: o projet
 
 ### Fluxo de uma requisição
 
-Controller (só `IMediator`) → `ExceptionHandlingMiddleware` → `CorrelationIdMiddleware` → `UseCors` → MediatR → `ValidationBehavior<,>` → Handler → Repositório/Cache/Gateway.
+`CorrelationIdMiddleware` → `ExceptionHandlingMiddleware` → `UseCors` → Controller (só `IMediator`) → MediatR → `ValidationBehavior<,>` → Handler → Repositório/Cache/Gateway.
 
 Pontos que se repetem em todo o código:
 
-- **Erros**: handlers lançam exceções de `TechCurse.Domain.Exceptions`; o `ExceptionHandlingMiddleware` as traduz em `ProblemDetails` com o status HTTP correspondente (`NotFoundException`→404, `ConflictException`/`NotAllowedException`→409, `ValidationException`→422, `GatewayTimeoutException`→504, etc.). Não retorne status de erro manualmente no controller.
+- **Erros**: handlers lançam exceções de `TechCurse.Domain.Exceptions`; o `ExceptionHandlingMiddleware` as traduz em `ProblemDetails` com o status HTTP correspondente (`NotFoundException`→404, `ConflictException`/`NotAllowedException`→409, `ValidationException`→422, `GatewayTimeoutException`→504, etc.). Não retorne status de erro manualmente no controller. Exceção que não é de domínio vira `500` com uma mensagem genérica (`ExceptionHandlingMiddleware.MensagemDeErroInesperado`); o detalhe vai só para o log. O `CorrelationIdMiddleware` vem **antes** do `ExceptionHandlingMiddleware`, para que o log da exceção carregue o `CorrelationId` que o cliente recebe no cabeçalho (`TRV-004`).
 - **Validação**: `ValidationBehavior` roda todos os `AbstractValidator<T>` registrados por assembly scanning e converte falhas em `ValidationException` (422). Basta criar o validator na mesma pasta da slice — não há registro manual.
 - **Cache**: queries leem/gravam em Redis via `ICacheService` com chaves prefixadas (`payments:list:`, `payments:item:`, `payments:student:`, `payments:enrollment:`, …). Todo command que muta dados chama `RemoveByPrefixAsync` para cada prefixo afetado — ao adicionar uma nova query com cache, adicione a invalidação correspondente nos commands. **As chaves não levam o usuário**: o cache é compartilhado, e uma escrita invalida a consulta de todos. Isso só é seguro porque **toda checagem de permissão ("é o próprio aluno?") acontece antes da leitura do cache**; ao criar consulta com cache sobre dado de um usuário, mantenha essa ordem (`TRV-019`).
 - As chaves de cache de pagamento ficam em `ChavesDeCachePagamento` (prefixo `payments:v2:`); mudar o formato do `PaymentOutputDto` exige subir a versão do prefixo.
