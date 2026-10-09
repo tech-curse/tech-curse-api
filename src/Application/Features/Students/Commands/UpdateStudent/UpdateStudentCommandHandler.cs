@@ -32,7 +32,7 @@ public class UpdateStudentCommandHandler : IRequestHandler<UpdateStudentCommand>
 
         if (currentUserId != targetIdentityUserId && !isAdmin)
         {
-            throw new NotAllowedException("Você não possui permissão suficiente para atualizar este registro.");
+            throw new ForbiddenAccessException("Você não possui permissão suficiente para atualizar este registro.");
         }
     }
 

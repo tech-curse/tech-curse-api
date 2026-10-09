@@ -32,7 +32,7 @@ public class CreateEnrollmentCommandHandler : IRequestHandler<CreateEnrollmentCo
 
         if (!isStudent && !isAdmin)
         {
-            throw new NotAllowedException("Apenas estudantes e administradores podem criar matrículas!");
+            throw new ForbiddenAccessException("Apenas estudantes e administradores podem criar matrículas!");
         }
 
         var userEmail = _currentUserService.GetUserEmail();

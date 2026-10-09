@@ -44,7 +44,7 @@ public class GetPaymentByIdQueryHandler : IRequestHandler<GetPaymentByIdQuery, P
         var isAdmin = _currentUserService.IsInRole(UserRole.Admin);
 
         if (currentUserId != targetIdentityUserId && !isAdmin)
-            throw new NotAllowedException("Você não possuí permissão suficiente para acessar este registro!");
+            throw new ForbiddenAccessException("Você não possuí permissão suficiente para acessar este registro!");
 
         return Task.CompletedTask;
     }
