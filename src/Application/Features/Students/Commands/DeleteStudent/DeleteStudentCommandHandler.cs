@@ -38,9 +38,12 @@ public class DeleteStudentCommandHandler : IRequestHandler<DeleteStudentCommand>
 
         await _studentRepository.UpdateAsync(student);
 
-        if (student.IdentityUser != null)
+        var usuario = await _userManager.FindByIdAsync(student.IdentityUserId);
+
+        if (usuario != null)
         {
-            await _userManager.SetLockoutEndDateAsync(student.IdentityUser, DateTimeOffset.MaxValue);
+            await _userManager.SetLockoutEnabledAsync(usuario, true);
+            await _userManager.SetLockoutEndDateAsync(usuario, DateTimeOffset.MaxValue);
         }
 
         await _cacheService.RemoveAsync($"{STUDENT_ITEM_PREFIX}{request.Id}");
