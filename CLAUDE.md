@@ -57,6 +57,8 @@ Criar migration do EF Core (o DbContext vive em Infrastructure, o host em API):
 ./scripts/com-env.sh dotnet ef migrations add NomeDaMigration --project src/Infrastructure --startup-project src/Api
 ```
 
+O `dotnet-ef` está fixado no manifesto de ferramentas (`.config/dotnet-tools.json`, mesma versão do EF Core); rode `dotnet tool restore` uma vez. O teste `MigrationsTests` falha se o modelo do EF mudar sem migration correspondente (`HasPendingModelChanges`).
+
 Os scripts de `scripts/` têm duas exigências de formato: o `.sh` é versionado como executável e começa com a linha `#!` (funcional, não é comentário), e o `.ps1` é salvo em UTF-8 **com BOM** (definido no `.editorconfig`), porque o Windows PowerShell 5.1 lê arquivo sem BOM como ANSI e estraga os acentos.
 
 ## Arquitetura
@@ -140,7 +142,6 @@ O que a suíte anterior ensinou e vale para a próxima:
 - **`Migrate()` é extension relacional** e lança no provider InMemory. Um host de teste sobre InMemory precisa de um gancho para pular o `Migrate()`/seed e o registro do Npgsql — os que existiam foram removidos.
 - **`TestServer` entrega IP nulo**: com `RateLimiting:Enabled=true` a suíte inteira cai numa partição só e vira 429 aleatório. Desligue na factory, nunca no padrão em código.
 - **Regra de NetArchTest que não casa nada passa.** `ResideInNamespaceMatching` recebe regex; duas regras ficaram vazias por semanas depois de uma renomeação de namespace. Valide cada regra injetando uma violação proposital.
-- **Drift de migration** é detectável comparando o modelo com o snapshot; a suíte anterior tinha um teste para isso.
 
 ## Comportamento de startup
 

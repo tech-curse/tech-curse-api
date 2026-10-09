@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using TechCurse.Application.DTOs;
 using TechCurse.Application.Interfaces;
 using TechCurse.Domain.Entities;
+using TechCurse.Domain.Exceptions;
 using TechCurse.Infrastructure.Data;
 
 namespace TechCurse.Infrastructure.Repositories;
@@ -34,7 +36,15 @@ public class EnrollmentRepository : IEnrollmentRepository
 
     public async Task AddAsync(Enrollment enrollment)
     {
-        await _context.Enrollments.AddAsync(enrollment);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.Enrollments.AddAsync(enrollment);
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException erro) when (erro.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            _context.Entry(enrollment).State = EntityState.Detached;
+            throw new ConflictException("Estudante já está matriculado neste curso!");
+        }
     }
 }

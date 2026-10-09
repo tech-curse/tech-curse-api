@@ -27,7 +27,7 @@ public class EnrollmentController : ControllerBase
         Summary = "Realiza a matrícula de um aluno em um curso.",
         Description = "**Acesso:** Requer usuário autenticado."
     )]
-    [SwaggerResponse(StatusCodes.Status202Accepted, "Aluno matriculado com sucesso.", typeof(MensagemOutputDto))]
+    [SwaggerResponse(StatusCodes.Status201Created, "Aluno matriculado com sucesso.", typeof(MensagemOutputDto))]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "Usuário não autenticado.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status403Forbidden, "Acesso negado.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Aluno ou Curso não encontrados.", typeof(ProblemDetails))]
@@ -38,6 +38,6 @@ public class EnrollmentController : ControllerBase
         var command = new CreateEnrollmentCommand(input.StudentId, input.CourseId);
         await _mediator.Send(command);
 
-        return Accepted(new MensagemOutputDto("Aluno matriculado com sucesso."));
+        return StatusCode(StatusCodes.Status201Created, new MensagemOutputDto("Aluno matriculado com sucesso."));
     }
 }

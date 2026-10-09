@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TechCurse.Infrastructure.Data;
@@ -11,9 +12,11 @@ using TechCurse.Infrastructure.Data;
 namespace TechCurse.Infrastructure.Migrations
 {
     [DbContext(typeof(TechCurseContext))]
-    partial class TechCurseContextModelSnapshot : ModelSnapshot
+    [Migration("20261009214035_MatriculaUnicaPorAlunoECurso")]
+    partial class MatriculaUnicaPorAlunoECurso
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

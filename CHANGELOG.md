@@ -20,6 +20,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- Matrícula responde `201 Created`; antes respondia `202 Accepted` para uma matrícula já gravada (`MAT-001`).
 - Acesso a dado de outro aluno (perfil, matrículas, pagamentos) e matrícula feita por `Instructor` respondem `403 Forbidden`; antes respondiam `409 Conflict`. Conflitos de estado, como processar um pagamento já pago, continuam `409` (`ALU-005`, `ALU-011`, `ALU-019`, `MAT-004`, `PAG-019`).
 - O cache de consultas passa a ser compartilhado entre usuários, e toda escrita invalida a consulta de todos. Antes, cada usuário tinha a própria cópia, e só a de quem escrevia era apagada: alunos viam cursos editados ou removidos e pagamentos desatualizados por até 15 minutos (`TRV-019`, `CUR-018`, `PAG-023`).
 - A repetição de uma escrita idempotente com a mesma `Idempotency-Key` devolve a resposta original; antes terminava em `500`, por causa de uma dupla serialização. A chave passa a separar usuário, método e rota (`TRV-015`, `TRV-016`).
@@ -36,6 +37,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - `docs/diagram.png`, desatualizado (mostrava SQL Server e Seq); o diagrama em Mermaid do README é a referência.
 - Histórico de versões do projeto anterior (1.x a 3.0.0) neste CHANGELOG.
 - `appsettings.Development.json` e User Secrets (`UserSecretsId`): configuração por ambiente nomeado e uma segunda fonte da verdade ao lado do `.env`.
+
+### Corrigido
+
+- Requisições simultâneas de matrícula no mesmo curso (clique duplo) criavam matrículas duplicadas. Um índice único em (aluno, curso), na migration `MatriculaUnicaPorAlunoECurso`, barra a segunda, que responde `409` (`MAT-006`).
 
 ### Segurança
 
