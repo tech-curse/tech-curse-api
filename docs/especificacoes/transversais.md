@@ -181,6 +181,54 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 **Status:** divergente: correção proposta para a Fase 3
 **Hoje:** as chaves de cache levam o id do usuário que consultou, e a invalidação apaga só as chaves de quem fez a escrita. O aluno continua vendo o status antigo por até 15 minutos, o prazo usado pelas consultas. O mesmo vale para cursos: um curso editado ou removido por um Admin continua aparecendo como antes para os alunos que já tinham consultado. Detalhes em `cursos.md` e `pagamentos.md`.
 
+### Paginação
+
+As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `PageNumber` (padrão `1`), `PageSize` (padrão `10`), `SortBy` (padrão `Id`) e `SortDirection` (`asc`, o padrão, ou `desc`), e respondem:
+
+```json
+{
+  "items": [],
+  "pageNumber": 1,
+  "pageSize": 10,
+  "totalCount": 0,
+  "totalPages": 0,
+  "hasPreviousPage": false,
+  "hasNextPage": false
+}
+```
+
+**TRV-027: Página e tamanho padrão**
+*Quando* a listagem é chamada sem parâmetros
+*Então* a resposta traz a página `1`, com até `10` itens, ordenados pelo id em ordem crescente
+**Status:** implementado
+
+**TRV-028: Tamanho de página tem teto**
+*Quando* `PageSize` é maior que `50`
+*Então* a resposta usa `50`
+**Status:** implementado
+
+**TRV-029: Os metadados descrevem a página corretamente**
+*Dado* 25 registros e `PageSize` = `10`
+*Quando* a página `3` é pedida
+*Então* `items` tem 5 itens, `totalCount` = `25`, `totalPages` = `3`, `hasPreviousPage` = `true` e `hasNextPage` = `false`
+**Status:** implementado
+
+**TRV-030: Página além da última vem vazia**
+*Quando* `PageNumber` é maior que `totalPages`
+*Então* a resposta é `200`, com `items` vazio e os metadados corretos
+**Status:** implementado
+
+**TRV-031: Página ou tamanho inválido é recusado**
+*Quando* `PageNumber` ou `PageSize` é menor que `1`
+*Então* a resposta é `422`, com `errors` apontando o parâmetro inválido
+**Status:** divergente: correção proposta para a Fase 3
+**Hoje:** `PageNumber` = `0` gera um `OFFSET` negativo, que o PostgreSQL recusa: `500`. `PageSize` = `0` divide por zero no cálculo de `totalPages`, que, havendo registros, sai como `2147483647`, com `hasNextPage` = `true`. O web lê a página da URL, então `?pagina=0` no navegador já provoca o `500`.
+
+**TRV-032: Ordenação desconhecida cai no padrão**
+*Quando* `SortBy` não é um dos campos aceitos pela listagem
+*Então* a ordenação é pelo id, na direção pedida, sem erro
+**Status:** implementado
+
 ### Health checks
 
 **TRV-020: Liveness responde sem depender de nada**
@@ -233,6 +281,7 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 | `TRV-015` | Repetição com a mesma chave deve dar `500` (dupla serialização) | Guardar e ler o modelo sem a serialização extra | Fase 3 |
 | `TRV-016` | Chave de idempotência não separa endpoints | Incluir método e rota na chave | Fase 3 |
 | `TRV-019` | Escrita só limpa o cache de quem escreveu; os outros veem dado antigo por até 15 minutos | Dados compartilhados (catálogo, pagamentos) com chave sem usuário, invalidada por todos. A checagem de permissão ("é o próprio aluno?") acontece sempre **antes** de ler o cache, porque hoje é a chave por usuário que isola os dados de cada um | Fase 3 |
+| `TRV-031` | Página `0` dá `500`; tamanho `0` gera `totalPages` sem sentido | `422` para página ou tamanho menor que `1` | Fase 3 |
 | `TRV-013` | Limite por IP vê só o IP do proxy | Tratar `X-Forwarded-For` vindo do Nginx | Fase 6 |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
 | `TRV-025` | API não sobe em `Production` | Subir sem o módulo de pagamentos | Antes do 1º deploy |
