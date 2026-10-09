@@ -12,8 +12,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - `.env.example` com todas as variáveis de configuração, sem valores.
 - `.gitattributes` e `.editorconfig` fixando LF, para que o `dotnet format --verify-no-changes` dê o mesmo resultado no Windows e no Linux.
 - README com seção "Como testar" e links para a organização `tech-curse`.
-- CI no GitHub Actions em todo pull request e push na `main`: restore travado, build Release sem warnings, `dotnet format --verify-no-changes` e `dotnet test`.
-- `global.json` fixando o SDK 10.0.401 e `packages.lock.json` em cada projeto, para restore reproduzível e cache de NuGet no CI.
+- CI no GitHub Actions em todo pull request e push na `main`: restore, build Release sem warnings, `dotnet format --verify-no-changes` e `dotnet test`, com cache de NuGet.
+- `global.json` fixando o SDK 10.0.401.
 
 ### Alterado
 

@@ -23,7 +23,7 @@ A collection do Postman fica em `docs/`. O diagrama de arquitetura vive no READM
 
 Todos executados na raiz do repositório. A solution é `TechCurse.slnx` (formato slnx, não `.sln`). Versões de pacote são gerenciadas centralmente em `Directory.Packages.props` (Central Package Management) — os `.csproj` só declaram `<PackageReference Include="..." />` sem `Version`; propriedades comuns (`TargetFramework`, `Nullable`, `ImplicitUsings`, `VersionPrefix`, etc.) vêm de `Directory.Build.props` na raiz.
 
-O SDK é fixado no `global.json` (`rollForward: latestFeature`), e o CI instala exatamente essa versão. Cada projeto tem um `packages.lock.json` (`RestorePackagesWithLockFile`), e o CI restaura com `--locked-mode`: **mudou pacote em `Directory.Packages.props`, rode `dotnet restore` e commite os lock files no mesmo PR**, ou o CI falha. Os lock files também são a chave do cache de NuGet no CI.
+O SDK é fixado no `global.json` (`rollForward: latestFeature`), e o CI instala exatamente essa versão. **Não há `packages.lock.json`, de propósito.** O NuGet resolve dependências transitivas pela menor versão aplicável, então, com as versões diretas fixadas no `Directory.Packages.props`, o restore já é reproduzível. Os lock files foram tentados e removidos: o Dependabot atualiza o lock do projeto que referencia o pacote, mas não as entradas `CentralTransitive` dos projetos que dependem dele indiretamente (com `CentralPackageTransitivePinningEnabled`), e todo PR dele falhava no `--locked-mode`. O cache de NuGet do CI usa como chave o hash de `global.json`, `Directory.Packages.props` e dos `.csproj`.
 
 ```bash
 dotnet build TechCurse.slnx
@@ -133,7 +133,7 @@ Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, qu
 
 **Não há imagem, compose nem pipeline de entrega desde a importação do repositório** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml` e o antigo `ci-cd.yml` foram removidos para serem refeitos. Nenhuma imagem é publicada a partir deste repositório ainda.
 
-O CI existe: `.github/workflows/ci.yml`, em todo PR e em todo push na `main`, com restore travado, build Release com `TreatWarningsAsErrors`, `dotnet format --verify-no-changes` e `dotnet test`. O job se chama `ci`, e esse é o nome do check obrigatório na proteção da `main`; renomear o job quebra a proteção.
+O CI existe: `.github/workflows/ci.yml`, em todo PR e em todo push na `main`, com restore, build Release com `TreatWarningsAsErrors`, `dotnet format --verify-no-changes` e `dotnet test`. O job se chama `ci`, e esse é o nome do check obrigatório na proteção da `main`; renomear o job quebra a proteção.
 
 `InvariantGlobalization` continua `false` no `Directory.Build.props` por herança: o `Microsoft.Data.SqlClient` exigia ICU, e a imagem anterior usava a variante `chiseled-extra` por isso. O Npgsql em princípio não depende do ICU, mas isso nunca foi validado. Se a nova imagem usar um runtime sem ICU, mexa nas duas coisas juntas e valide o `Migrate()` e o health check.
 
@@ -200,7 +200,7 @@ Repositório `tech-curse/tech-curse-api`, importado sem histórico. Desenvolvime
 
 A `main` é protegida pelo ruleset `protecao-da-main`: PR obrigatório, só squash merge, check `ci` obrigatório (publicado pelo app GitHub Actions) com a branch atualizada em relação à `main`, histórico linear, sem force push e sem apagar a branch. Não há exceção nem para administrador. Um PR atrasado em relação à `main` precisa de "Update branch" e de um novo `ci` verde antes do merge.
 
-Dependabot (`.github/dependabot.yml`): NuGet e GitHub Actions toda segunda, minor e patch agrupados, cooldown de 7 dias que não se aplica a correções de segurança. Secret scanning, push protection, reporte privado de vulnerabilidade e CodeQL (*default setup*) estão ligados no repositório.
+Dependabot (`.github/dependabot.yml`): NuGet e GitHub Actions toda segunda, minor e patch agrupados, cooldown de 7 dias que não se aplica a correções de segurança. **Majors do MediatR são ignorados:** a partir da 13 o MediatR tem licença comercial e exige `LicenseKey`. Ficamos na 12.x até uma decisão explícita (manter, licenciar ou trocar de biblioteca). Secret scanning, push protection, reporte privado de vulnerabilidade e CodeQL (*default setup*) estão ligados no repositório.
 
 Templates de issue e de PR, `CONTRIBUTING.md` e `SECURITY.md` vêm do repositório `tech-curse/.github` da organização; não duplique aqui.
 
