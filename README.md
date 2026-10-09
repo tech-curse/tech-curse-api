@@ -53,7 +53,7 @@ flowchart LR
 Fluxo de uma requisição:
 
 ```
-Controller → ExceptionHandlingMiddleware → CorrelationIdMiddleware → MediatR
+CorrelationIdMiddleware → ExceptionHandlingMiddleware → Controller → MediatR
            → ValidationBehavior (FluentValidation) → Handler → Repositório / Cache / Gateway
 ```
 

@@ -7,6 +7,8 @@ namespace TechCurse.Api.Middleware;
 
 public class ExceptionHandlingMiddleware
 {
+    public const string MensagemDeErroInesperado = "Ocorreu um erro inesperado. Informe o código de correlação ao suporte.";
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
@@ -46,7 +48,7 @@ public class ExceptionHandlingMiddleware
 
         var problemDetails = new ProblemDetails
         {
-            Detail = exception.Message,
+            Detail = statusCode == HttpStatusCode.InternalServerError ? MensagemDeErroInesperado : exception.Message,
             Instance = context.Request.Path,
             Status = (int)statusCode,
             Title = statusCode.ToString(),
