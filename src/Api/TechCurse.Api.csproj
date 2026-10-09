@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <RootNamespace>TechCurse.Api</RootNamespace>
-    <UserSecretsId>5a10de01-54b9-48b8-be79-0076cbf9d269</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

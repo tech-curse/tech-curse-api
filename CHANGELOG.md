@@ -9,7 +9,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 ### Adicionado
 
 - Base de código importada: cursos, estudantes, matrículas e pagamentos, com autenticação JWT sobre ASP.NET Core Identity, PostgreSQL 17 e Redis.
-- `.env.example` com todas as variáveis de configuração, sem valores.
+- `.env.example` com todas as variáveis que a API lê: segredos sem valor, o resto com um valor de exemplo de desenvolvimento.
+- `scripts/com-env.sh` e `scripts/com-env.ps1`: carregam o `.env` e executam a API (ou outro comando, como `dotnet ef`) com essas variáveis.
 - `.gitattributes` e `.editorconfig` fixando LF, para que o `dotnet format --verify-no-changes` dê o mesmo resultado no Windows e no Linux.
 - README com seção "Como testar" e links para a organização `tech-curse`.
 - CI no GitHub Actions em todo pull request e push na `main`: restore, build Release sem warnings, `dotnet format --verify-no-changes` e `dotnet test`, com cache de NuGet.
@@ -20,13 +21,14 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Versão reiniciada em `1.0.0` no `Directory.Build.props`.
 - O Swagger passa a ler a versão do assembly, em vez de um `"2.0.0"` fixo no código.
 - README corrigido: o lockout do Identity está configurado, mas o login ainda não o aplica (`lockoutOnFailure: false`).
-- README e CLAUDE.md documentam que rodar localmente exige gravar as connection strings e a `Jwt:SigningKey` em User Secrets: nenhuma credencial é versionada, nem de desenvolvimento.
+- **A configuração vem só de `appsettings.json` e de variáveis de ambiente.** Para rodar localmente, copie o `.env.example` para `.env`, preencha as connection strings e a `Jwt__SigningKey`, e use `scripts/com-env`. Nenhuma credencial é versionada, nem de desenvolvimento.
 
 ### Removido
 
 - `LICENSE`.
 - `docs/diagram.png`, desatualizado (mostrava SQL Server e Seq); o diagrama em Mermaid do README é a referência.
 - Histórico de versões do projeto anterior (1.x a 3.0.0) neste CHANGELOG.
+- `appsettings.Development.json` e User Secrets (`UserSecretsId`): configuração por ambiente nomeado e uma segunda fonte da verdade ao lado do `.env`.
 
 ### Segurança
 
