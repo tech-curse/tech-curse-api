@@ -88,8 +88,10 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 **AUTH-009: O nome é livre e não identifica a conta**
 *Quando* alguém se registra com um nome que tem espaço ou acento (ex.: `"João da Silva"`), ou com o mesmo nome de outro usuário
 *Então* o registro é aceito
+*Quando* o nome está vazio ou passa de 100 caracteres
+*Então* a resposta é `422`, com as mesmas mensagens da edição de perfil (`ALU-012`)
 **Status:** divergente: correção proposta para a Fase 3, na API e no web
-**Hoje:** o nome vira o `UserName` do Identity, que só aceita `A-Z a-z 0-9 - . _ @ +` e precisa ser único. `"João da Silva"` recebe `422 InvalidUserName`, e um segundo `"Ana"` recebe `422 DuplicateUserName`. O web repete a restrição no formulário.
+**Hoje:** o nome vira o `UserName` do Identity, que só aceita `A-Z a-z 0-9 - . _ @ +` e precisa ser único. `"João da Silva"` recebe `422 InvalidUserName`, e um segundo `"Ana"` recebe `422 DuplicateUserName`. O web repete a restrição no formulário. Não há limite de tamanho no registro, então um nome de 150 caracteres é aceito e depois impede a edição do perfil.
 
 **AUTH-010: Falha ao criar o perfil desfaz a criação do usuário**
 *Dado* que a gravação do perfil de estudante falha
@@ -228,6 +230,14 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *Então* o valor guardado no banco para o refresh token é o hash SHA-256 (em Base64) do token devolvido, e não o token em si
 **Status:** implementado
 
+**AUTH-039: Conta bloqueada não renova a sessão**
+*Dado* um usuário com a conta bloqueada, por exemplo um aluno removido por um `Admin` (`ALU-014`)
+*Quando* o cliente dele envia `POST /refresh` com um par de tokens que era válido
+*Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
+*E* o refresh token dele é apagado
+**Status:** divergente: correção proposta para a Fase 3
+**Hoje:** o refresh não verifica bloqueio. O login de uma conta bloqueada é recusado, mas a sessão já aberta é renovada indefinidamente.
+
 ### Sessão: evoluções planejadas
 
 **AUTH-031: Várias sessões por usuário, revogáveis uma a uma**
@@ -287,6 +297,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 | `AUTH-027` | `500` com mensagem interna, ou `403` | `401` | Fase 3 |
 | `AUTH-028` | `404` | `401` | Fase 3 |
 | `AUTH-036` | ASCII na emissão, UTF-8 na validação | UTF-8 nas duas | Fase 3 |
+| `AUTH-039` | Refresh renova a sessão de conta bloqueada (aluno removido mantém acesso) | Recusar e apagar o refresh token | Fase 3 |
 | `AUTH-018` | Lockout configurado, mas nunca aplicado | Aplicar | Fase 5 |
 
 ## Fora de escopo
