@@ -291,13 +291,22 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 
 ### Configuração e processos (Twelve-Factor)
 
-**TRV-034: Configuração só por variáveis de ambiente**
+**TRV-034: A API lê configuração só de `appsettings.json` e de variáveis de ambiente**
 *Dado* qualquer ambiente, inclusive o de desenvolvimento
 *Então* a API lê a configuração de `appsettings.json`, que só tem padrões seguros, iguais em todo ambiente, e de variáveis de ambiente, que prevalecem
 *E* não existe `appsettings.<Ambiente>.json` nem User Secrets
-*E* em desenvolvimento, um `.env` local fora do git, copiado do `.env.example`, fornece as variáveis ao compose de desenvolvimento e ao `dotnet run`
-**Status:** divergente: correção proposta para a Fase 4, junto com o compose de desenvolvimento
+*E* a API não lê nenhum arquivo `.env`: quem inicia o processo (IDE, script, compose, workflow do CI) transforma o `.env` em variáveis de ambiente
+*E* toda chave que a API lê está no `.env.example`: os segredos sem valor; o resto com um valor de exemplo de desenvolvimento
+*E* a estrutura completa (o que mora onde, em cada contexto) está em [`docs/configuracao.md`](../configuracao.md)
+**Status:** divergente: correção proposta para a Fase 3
 **Hoje:** o `appsettings.Development.json` traz emissor, audiência e origem do CORS de desenvolvimento; o `TechCurse.Api.csproj` tem `UserSecretsId`; e o README e o `CLAUDE.md` orientam gravar connection strings e a chave de assinatura em User Secrets.
+
+**TRV-039: Segredos da aplicação existem só no ambiente que os usa**
+*Então* os segredos de staging e de produção ficam apenas no `.env` de cada ambiente na VPS (fora do git, permissão `600`, dono o usuário de deploy)
+*E* o pipeline de deploy não conhece nenhum segredo da aplicação: só as credenciais para alcançar a VPS
+*E* o CI não usa segredo da aplicação: os testes geram valores descartáveis no próprio job
+*E* trocar um segredo é editar o `.env` da VPS e recriar o contêiner, sem build nem deploy
+**Status:** planejado (Fases 6 e 7)
 
 **TRV-035: O primeiro Admin é criado por um processo administrativo avulso**
 *Dado* a imagem da release, em qualquer ambiente
@@ -342,7 +351,8 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 | `TRV-025` | API não sobe em `Production`; pagamentos sempre registrados | `Payments:Enabled`, desligado por padrão | Antes do 1º deploy |
 | `TRV-026` | Swagger decidido pelos nomes de ambiente `Development` e `Homolog` | `Swagger:Enabled`, desligado por padrão | Fase 6 |
 | `TRV-033` | Trava derruba a API em `Production` mesmo sem pagamentos | Trava só quando `Payments:Enabled` = `true` com o gateway simulado | Antes do 1º deploy |
-| `TRV-034` | `appsettings.Development.json`, User Secrets | Só `appsettings.json` com padrões seguros e variáveis de ambiente; `.env` local em dev | Fase 4 |
+| `TRV-034` | `appsettings.Development.json`, User Secrets | Só `appsettings.json` com padrões seguros e variáveis de ambiente; `.env` local carregado por IDE ou script | Fase 3 |
+| `TRV-039` | Segredos ainda sem lugar definido fora do desenvolvimento | Só no `.env` de cada ambiente na VPS; pipeline e CI sem segredos da aplicação | Fases 6 e 7 |
 | `TRV-035` | Sem forma de criar o primeiro Admin fora de `Development` | Comando avulso na imagem da release | Antes do 1º deploy |
 | `TRV-036` | `docker stop` mata em 10 s; a API espera até 30 s | Encerrar em até 25 s; orquestrador espera 30 s | Fase 4 |
 | `TRV-037` | `UseHttpsRedirection()` atrás do proxy | HTTP puro; esquema e IP via `X-Forwarded-*` do proxy | Fase 6 |
