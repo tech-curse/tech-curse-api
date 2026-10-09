@@ -53,7 +53,7 @@ flowchart LR
 Fluxo de uma requisição:
 
 ```
-Controller → ExceptionHandlingMiddleware → CorrelationIdMiddleware → MediatR
+ForwardedHeaders → ExceptionHandlingMiddleware → CorrelationIdMiddleware → Controller → MediatR
            → ValidationBehavior (FluentValidation) → Handler → Repositório / Cache / Gateway
 ```
 
@@ -131,6 +131,8 @@ A configuração vem de variáveis de ambiente e User Secrets; o `appsettings.js
 | `Jwt:SigningKey` | Chave de assinatura, mínimo de 32 caracteres. Gere com `openssl rand -base64 48` |
 | `Jwt:RefreshTokenDays` | Validade do refresh token (padrão `7`) |
 | `Cors:AllowedOrigins` | Origens permitidas, separadas por vírgula. Vazio desliga o CORS |
+| `ForwardedHeaders:KnownProxies` | IPs dos proxies reversos confiáveis, separados por vírgula. O loopback já é confiável |
+| `ForwardedHeaders:KnownNetworks` | Redes confiáveis em CIDR, separadas por vírgula (ex.: `172.18.0.0/16`, a rede Docker do proxy) |
 | `RateLimiting:Enabled` | Liga o rate limiting (padrão `true`) |
 | `RateLimiting:GlobalPermitLimit` / `GlobalWindowSeconds` | Limite global (padrão 200 por 60 s) |
 | `RateLimiting:AuthPermitLimit` / `AuthWindowSeconds` | Limite dos endpoints de autenticação (padrão 10 por 60 s) |
@@ -169,6 +171,7 @@ As escritas de pagamento exigem o header **`Idempotency-Key`**; sem ele a respos
 | --- | --- |
 | Refresh token | Persistido como hash SHA-256, comparado em tempo constante, com rotação a cada uso |
 | Rate limiting | Limite global por usuário ou IP e política mais restrita na autenticação; rejeição em `ProblemDetails` 429 com `Retry-After` |
+| Proxy reverso | IP do cliente e esquema lidos de `X-Forwarded-For` e `X-Forwarded-Proto` só quando a conexão vem de um proxy confiável; de qualquer outra origem, os cabeçalhos são ignorados |
 | Lockout | Configurado no Identity (5 tentativas, 15 minutos), mas **ainda não aplicado**: o login chama `CheckPasswordSignInAsync` com `lockoutOnFailure: false`. O rate limiting da autenticação é a única barreira contra força bruta hoje |
 | Autorização | RBAC por papel no controller; regras de posse ("é o próprio aluno") nos handlers |
 | Data Protection | Chaveiro persistido no banco, sem chaves efêmeras no sistema de arquivos |
