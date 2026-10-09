@@ -1,5 +1,6 @@
 # Tech Curse API
 
+[![CI](https://github.com/tech-curse/tech-curse-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tech-curse/tech-curse-api/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/tag/tech-curse/tech-curse-api?filter=v*.*.*&label=release)](https://github.com/tech-curse/tech-curse-api/tags)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 
@@ -185,7 +186,7 @@ O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/); a versão
 - **Migrations aplicadas no startup.** Uma falha de migration impede a API de subir. Com várias réplicas, o caminho adequado seria um job de migração dedicado antes do rollout.
 - **Rate limiting em memória, por instância.** Com N réplicas, o limite efetivo é N vezes o configurado.
 - **Um refresh token por usuário.** Um login em outro dispositivo invalida a sessão anterior.
-- **Sem testes automatizados, imagem de contêiner nem pipeline.** Os três estão sendo reconstruídos do zero.
+- **Sem testes automatizados, imagem de contêiner nem pipeline de entrega.** Estão sendo reconstruídos do zero; o CI de build e formatação já roda em todo pull request.
 
 ## Contribuindo
 
