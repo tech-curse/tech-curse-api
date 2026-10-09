@@ -82,21 +82,21 @@ git clone https://github.com/tech-curse/tech-curse-api.git
 cd tech-curse-api
 ```
 
-Nenhuma credencial é versionada: o [`appsettings.Development.json`](src/Api/appsettings.Development.json) só traz emissor e audiência do JWT e a origem do front-end. Antes do primeiro `dotnet run`, grave em [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) as connection strings e uma chave de assinatura gerada na hora. O host carrega os User Secrets em `Development`, por cima do `appsettings.Development.json`:
+A API lê a configuração de variáveis de ambiente; nenhuma credencial é versionada. Em desenvolvimento, as variáveis ficam num `.env` local, fora do git:
 
 ```bash
-dotnet user-secrets set "ConnectionStrings:APITechCurse" "Host=localhost;Port=5432;Database=APITechCurse;Username=<usuario>;Password=<senha>;" --project src/Api
-dotnet user-secrets set "ConnectionStrings:RedisCache" "localhost:6379,password=<senha>,abortConnect=false" --project src/Api
-dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/Api
+cp .env.example .env
 ```
 
-Depois:
+Preencha no `.env` as connection strings do seu PostgreSQL e do seu Redis e uma chave de assinatura gerada na hora (`openssl rand -base64 48`), no campo `Jwt__SigningKey`. Depois rode a API com o script, que carrega o `.env` e executa `dotnet run --project src/Api`:
 
 ```bash
-dotnet run --project src/Api
+./scripts/com-env.sh
 ```
 
-As migrations são aplicadas no startup.
+No PowerShell, `./scripts/com-env.ps1`. Na IDE, aponte a run configuration para o arquivo `.env`. O script também roda outros comandos com as mesmas variáveis, por exemplo `./scripts/com-env.sh dotnet ef database update --project src/Infrastructure --startup-project src/Api`.
+
+As migrations são aplicadas no startup. O porquê desta estrutura, e de onde a configuração vem em cada ambiente, está em [`docs/configuracao.md`](docs/configuracao.md).
 
 | Recurso | Endereço |
 | --- | --- |
@@ -106,7 +106,7 @@ As migrations são aplicadas no startup.
 
 ### Admin de desenvolvimento
 
-Em `Development`, a API cria um usuário `Admin` no startup a partir de `Seed:Admin:Email` e `Seed:Admin:Password`, lidos de User Secrets ou de variáveis de ambiente. A criação é idempotente e não acontece em nenhum outro ambiente. Deixe as chaves vazias para não semear, ou troque a senha se a máquina for acessível a outras pessoas.
+Em `Development`, a API cria um usuário `Admin` no startup a partir de `Seed:Admin:Email` e `Seed:Admin:Password`, lidos de variáveis de ambiente (`Seed__Admin__Email` e `Seed__Admin__Password` no `.env`). A criação é idempotente e não acontece em nenhum outro ambiente. Deixe as chaves vazias para não semear, ou troque a senha se a máquina for acessível a outras pessoas.
 
 ## Como testar
 
@@ -121,7 +121,7 @@ Para exercitar os endpoints à mão, use o Swagger ou a collection do Postman em
 
 ## Configuração
 
-A configuração vem de variáveis de ambiente e User Secrets; o `appsettings.json` só traz valores vazios e padrões. Em variáveis de ambiente, as chaves usam `__` no lugar de `:` (ex.: `Jwt__SigningKey`). O [`.env.example`](.env.example) lista todas as variáveis, sem valores reais.
+A configuração vem de variáveis de ambiente; o `appsettings.json` só traz padrões seguros, iguais em todo ambiente. Não há `appsettings.<Ambiente>.json` nem User Secrets. Em variáveis de ambiente, as chaves usam `__` no lugar de `:` (ex.: `Jwt__SigningKey`). O [`.env.example`](.env.example) lista todas as variáveis que a API lê: os segredos sem valor e o resto com um valor de exemplo de desenvolvimento.
 
 | Chave | Descrição |
 | --- | --- |

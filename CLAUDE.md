@@ -31,27 +31,23 @@ O SDK é fixado no `global.json` (`rollForward: latestFeature`), e o CI instala 
 dotnet build TechCurse.slnx
 ```
 
-Rodar a API no host (Swagger em http://localhost:5130/swagger, liveness em `/health/live`, readiness em `/health/ready`). Requer PostgreSQL e Redis acessíveis:
+Rodar a API no host (Swagger em http://localhost:5130/swagger, liveness em `/health/live`, readiness em `/health/ready`). Requer PostgreSQL e Redis acessíveis e um `.env` na raiz, copiado do `.env.example` e preenchido:
 
 ```bash
-dotnet run --project src/Api
+./scripts/com-env.sh
 ```
 
-**Nenhuma credencial é versionada**, nem de desenvolvimento: o `appsettings.Development.json` só traz `Jwt:Issuer`, `Jwt:Audience` e `Cors:AllowedOrigins`. Connection strings e `Jwt:SigningKey` vão para User Secrets, que o host carrega em `Development` por cima do `appsettings.Development.json` (o `UserSecretsId` já existe no `TechCurse.Api.csproj`). O repositório é público: não grave valor real em arquivo versionado, nem para "só testar". Toda variável nova entra no `.env.example`, sem valor.
+**A API só lê `appsettings.json` e variáveis de ambiente**; não existe `appsettings.<Ambiente>.json` nem User Secrets, e a API nunca lê o `.env`. Quem a inicia é que carrega o arquivo: `scripts/com-env.sh` (ou `.ps1`), a IDE ou o compose. Sem argumentos o script executa `dotnet run --project src/Api`; com argumentos, executa o comando dado com as variáveis do `.env`. Detalhes em [`docs/configuracao.md`](docs/configuracao.md). O repositório é público: não grave valor real em arquivo versionado, nem para "só testar". Toda chave nova entra no `.env.example`: segredo sem valor, o resto com um valor de exemplo de desenvolvimento.
 
-```bash
-dotnet user-secrets set "ConnectionStrings:APITechCurse" "Host=localhost;Port=5432;Database=APITechCurse;Username=<usuario>;Password=<senha>;" --project src/Api
-dotnet user-secrets set "ConnectionStrings:RedisCache" "localhost:6379,password=<senha>,abortConnect=false" --project src/Api
-dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/Api
-```
-
-O `dotnet ef` monta o host da API e lê os mesmos secrets, então `database update` sem `--connection` vai para onde o `dotnet run` iria.
+O `dotnet ef` monta o host da API, então precisa das mesmas variáveis: rode-o pelo script, e `database update` sem `--connection` vai para onde o `dotnet run` iria.
 
 Criar migration do EF Core (o DbContext vive em Infrastructure, o host em API):
 
 ```bash
-dotnet ef migrations add NomeDaMigration --project src/Infrastructure --startup-project src/Api
+./scripts/com-env.sh dotnet ef migrations add NomeDaMigration --project src/Infrastructure --startup-project src/Api
 ```
+
+Os scripts de `scripts/` têm duas exigências de formato: o `.sh` é versionado como executável e começa com a linha `#!` (funcional, não é comentário), e o `.ps1` é salvo em UTF-8 **com BOM** (definido no `.editorconfig`), porque o Windows PowerShell 5.1 lê arquivo sem BOM como ANSI e estraga os acentos.
 
 ## Arquitetura
 
