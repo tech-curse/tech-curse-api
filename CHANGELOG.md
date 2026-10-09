@@ -15,6 +15,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - README com seção "Como testar" e links para a organização `tech-curse`.
 - CI no GitHub Actions em todo pull request e push na `main`: restore, build Release sem warnings, `dotnet format --verify-no-changes` e `dotnet test`, com cache de NuGet.
 - `global.json` fixando o SDK 10.0.401.
+- Estrutura de testes: integração com `WebApplicationFactory` e Testcontainers (PostgreSQL 17 e Redis 7 reais) e testes unitários, em xUnit v3 sobre o Microsoft.Testing.Platform. Primeiros testes: health checks (`TRV-020` a `TRV-022`) e elegibilidade de pagamento (`PAG-008`).
+- Cobertura de código e relatório de rastreabilidade entre especificação e testes no resumo de cada execução do CI.
 
 ### Alterado
 

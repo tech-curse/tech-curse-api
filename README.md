@@ -110,11 +110,29 @@ Em `Development`, a API cria um usuário `Admin` no startup a partir de `Seed:Ad
 
 ## Como testar
 
-Ainda não há testes automatizados: a suíte (xUnit, `WebApplicationFactory` e Testcontainers com PostgreSQL e Redis reais) está sendo reconstruída. Até lá, as verificações disponíveis são:
+Pré-requisito: Docker em execução. Os testes de integração sobem um PostgreSQL 17 e um Redis 7 reais com o Testcontainers; nenhuma configuração ou `.env` é necessária.
 
 ```bash
-dotnet build TechCurse.slnx
-dotnet format TechCurse.slnx --verify-no-changes
+dotnet test --solution TechCurse.slnx
+```
+
+| Projeto | O que cobre |
+| --- | --- |
+| `tests/TechCurse.Api.IntegrationTests` | A API de ponta a ponta (`WebApplicationFactory`), contra PostgreSQL e Redis reais |
+| `tests/TechCurse.UnitTests` | Regras puras de domínio e aplicação, sem I/O |
+
+Cada teste declara o cenário da [especificação](docs/especificacoes/README.md) que cobre. Para ver quais cenários implementados ainda não têm teste:
+
+```bash
+python scripts/rastreabilidade.py
+```
+
+Cobertura de código, no mesmo formato do CI:
+
+```bash
+dotnet test --solution TechCurse.slnx --results-directory TestResults --coverage --coverage-output-format cobertura
+dotnet tool restore
+dotnet reportgenerator "-reports:TestResults/**/*.cobertura.xml" -targetdir:TestResults/relatorio -reporttypes:Html
 ```
 
 Para exercitar os endpoints à mão, use o Swagger ou a collection do Postman em [`docs/postman_collection.json`](docs/postman_collection.json).

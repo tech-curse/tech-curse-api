@@ -16,7 +16,7 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -40,4 +40,14 @@ jobs:
         run: dotnet format TechCurse.slnx --verify-no-changes --no-restore
 
       - name: Testes
-        run: dotnet test TechCurse.slnx --configuration Release --no-build
+        run: dotnet test --solution TechCurse.slnx --configuration Release --no-build --results-directory TestResults --coverage --coverage-output-format cobertura
+
+      - name: Cobertura
+        run: |
+          dotnet tool restore
+          dotnet reportgenerator "-reports:TestResults/**/*.cobertura.xml" -targetdir:TestResults/relatorio -reporttypes:MarkdownSummaryGithub "-assemblyfilters:+TechCurse.*;-TechCurse.*Tests" "-classfilters:-TechCurse.Infrastructure.Migrations.*"
+          cat TestResults/relatorio/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Rastreabilidade
+        if: ${{ !cancelled() }}
+        run: python3 scripts/rastreabilidade.py >> "$GITHUB_STEP_SUMMARY"

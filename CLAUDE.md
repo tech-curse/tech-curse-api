@@ -116,7 +116,19 @@ Em variáveis de ambiente essas chaves chegam como `Jwt__SigningKey`, `Connectio
 
 ## Testes
 
-**Não há testes desde a importação do repositório.** Os quatro projetos de `tests/` (unitários de Domain e Application, integração da Api e arquitetura) foram removidos para que a estrutura seja reconstruída do zero, e com eles os ganchos que existiam em `src/` só para a suíte: a chave `UseInMemoryDatabase` no `EFCoreSetup`, a guarda `IsRelational()` em volta do `Migrate()` e o `public partial class Program { }`.
+Dois projetos em `tests/`, com propriedades e pacotes comuns em `tests/Directory.Build.props`:
+
+- `TechCurse.Api.IntegrationTests` — a API inteira por `WebApplicationFactory<Program>` (`TechCurseApiFactory`), contra PostgreSQL 17 e Redis 7 reais do Testcontainers. Os contêineres sobem **uma vez por execução** (`AmbienteDeTeste`, registrado como *assembly fixture* do xUnit v3), e cada teste herda de `TesteDeIntegracao`, que limpa o banco (Respawn, preservando `__EFMigrationsHistory`, `AspNetRoles` e `DataProtectionKeys`) e o Redis antes de rodar. Por compartilharem o banco, os testes rodam em série (`Parallelization(Mode = ParallelMode.None)`).
+- `TechCurse.UnitTests` — regras puras, sem I/O.
+
+Convenções:
+
+- **Todo teste declara o cenário** com `[Trait("Especificacao", "<ID>")]`. `scripts/rastreabilidade.py` lista os cenários implementados sem teste e falha se um teste citar ID inexistente; no CI o relatório vai para o resumo da execução.
+- **A configuração dos testes entra pela factory** (`UseSetting`), nunca por `.env`: connection strings do Testcontainers, chave de assinatura gerada por execução e `RateLimiting:Enabled=false`. O ambiente é `Testing`, então o seed de Admin de `Development` não roda.
+- **Asserções só com `Assert` do xUnit.** FluentAssertions passou a ter licença comercial na versão 8.
+- **Cancelamento:** passe `TestContext.Current.CancellationToken` (propriedade `Cancelamento` da base) às chamadas assíncronas; o analisador do xUnit v3 exige, e o build trata warning como erro.
+- **Runner:** o `global.json` liga o Microsoft.Testing.Platform (`"test": { "runner": ... }`), exigido pelo xunit.v3 4.x no SDK 10. Por isso o comando é `dotnet test --solution TechCurse.slnx` e a cobertura vem de `Microsoft.Testing.Extensions.CodeCoverage` (`--coverage --coverage-output-format cobertura`), não do coverlet.
+- No .NET 10 o `Program` gerado por top-level statements já é público; não recrie `public partial class Program { }`.
 
 Ao criar uma nova slice, o caminho completo é: `Command`/`Query` + `Handler` + `Validator` na pasta da feature → interface de repositório em `Application/Interfaces` → implementação em `Infrastructure/Repositories` (registrada em `Infrastructure/DependencyInjection.cs`) → action no controller com `SwaggerOperation`/`SwaggerResponse`.
 
