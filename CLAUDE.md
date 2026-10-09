@@ -23,6 +23,8 @@ A collection do Postman fica em `docs/`. O diagrama de arquitetura vive no READM
 
 Todos executados na raiz do repositório. A solution é `TechCurse.slnx` (formato slnx, não `.sln`). Versões de pacote são gerenciadas centralmente em `Directory.Packages.props` (Central Package Management) — os `.csproj` só declaram `<PackageReference Include="..." />` sem `Version`; propriedades comuns (`TargetFramework`, `Nullable`, `ImplicitUsings`, `VersionPrefix`, etc.) vêm de `Directory.Build.props` na raiz.
 
+O SDK é fixado no `global.json` (`rollForward: latestFeature`), e o CI instala exatamente essa versão. Cada projeto tem um `packages.lock.json` (`RestorePackagesWithLockFile`), e o CI restaura com `--locked-mode`: **mudou pacote em `Directory.Packages.props`, rode `dotnet restore` e commite os lock files no mesmo PR**, ou o CI falha. Os lock files também são a chave do cache de NuGet no CI.
+
 ```bash
 dotnet build TechCurse.slnx
 ```
@@ -129,7 +131,9 @@ Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, qu
 
 ## Imagem e entrega
 
-**Não há imagem, compose nem pipeline desde a importação do repositório** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml` e `.github/workflows/ci-cd.yml` foram removidos para serem refeitos. Nenhuma imagem é publicada a partir deste repositório ainda.
+**Não há imagem, compose nem pipeline de entrega desde a importação do repositório** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml` e o antigo `ci-cd.yml` foram removidos para serem refeitos. Nenhuma imagem é publicada a partir deste repositório ainda.
+
+O CI existe: `.github/workflows/ci.yml`, em todo PR e em todo push na `main`, com restore travado, build Release com `TreatWarningsAsErrors`, `dotnet format --verify-no-changes` e `dotnet test`. O job se chama `ci`, e esse é o nome do check obrigatório na proteção da `main`; renomear o job quebra a proteção.
 
 `InvariantGlobalization` continua `false` no `Directory.Build.props` por herança: o `Microsoft.Data.SqlClient` exigia ICU, e a imagem anterior usava a variante `chiseled-extra` por isso. O Npgsql em princípio não depende do ICU, mas isso nunca foi validado. Se a nova imagem usar um runtime sem ICU, mexa nas duas coisas juntas e valide o `Migrate()` e o health check.
 
@@ -157,7 +161,7 @@ O repositório foi importado sem histórico, e a versão recomeçou em `1.0.0`: 
 
 ## Formatação
 
-`.editorconfig` na raiz define ordenação de `using`, chaves em Allman e severidade dos diagnósticos de nullable. `dotnet format TechCurse.slnx --verify-no-changes` passa limpo hoje — rode `dotnet format` antes de commitar para não gerar ruído de diff. Não há pipeline que a imponha.
+`.editorconfig` na raiz define ordenação de `using`, chaves em Allman e severidade dos diagnósticos de nullable. `dotnet format TechCurse.slnx --verify-no-changes` passa limpo hoje — rode `dotnet format` antes de commitar para não gerar ruído de diff. O CI reprova PR com formatação pendente.
 
 Final de linha é **LF** em todo o repositório: `end_of_line = lf` no `.editorconfig` e `* text=auto eol=lf` no `.gitattributes`. As duas regras andam juntas. O índice sempre guardou LF; com `end_of_line = crlf`, o `dotnet format` passava num Windows com `core.autocrlf=true` e falharia em todos os arquivos num runner Linux.
 
