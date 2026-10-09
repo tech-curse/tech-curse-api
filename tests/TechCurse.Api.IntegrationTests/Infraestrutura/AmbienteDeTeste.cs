@@ -1,3 +1,4 @@
+using DotNet.Testcontainers.Configurations;
 using Npgsql;
 using Respawn;
 using StackExchange.Redis;
@@ -8,15 +9,26 @@ namespace TechCurse.Api.IntegrationTests.Infraestrutura;
 
 public sealed class AmbienteDeTeste : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
+    public const string ImagemPostgres = "public.ecr.aws/docker/library/postgres:17";
 
-    private readonly RedisContainer _redis = new RedisBuilder("redis:7").Build();
+    public const string ImagemRedis = "public.ecr.aws/docker/library/redis:7";
+
+    private readonly PostgreSqlContainer _postgres;
+
+    private readonly RedisContainer _redis;
 
     private Respawner? _respawner;
 
     private ConnectionMultiplexer? _redisAdministrativo;
 
     public TechCurseApiFactory Fabrica { get; private set; } = null!;
+
+    public AmbienteDeTeste()
+    {
+        TestcontainersSettings.ResourceReaperEnabled = false;
+        _postgres = new PostgreSqlBuilder(ImagemPostgres).Build();
+        _redis = new RedisBuilder(ImagemRedis).Build();
+    }
 
     public async ValueTask InitializeAsync()
     {
