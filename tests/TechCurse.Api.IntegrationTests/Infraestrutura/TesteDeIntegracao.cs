@@ -81,6 +81,40 @@ public abstract class TesteDeIntegracao(AmbienteDeTeste ambiente) : IAsyncLifeti
             corpo.GetProperty("expiresAt").GetDateTime());
     }
 
+    protected static async Task<int> CriarCursoAsync(HttpClient admin, string titulo = "Curso de teste", string categoria = "Backend")
+    {
+        var resposta = await admin.PostAsJsonAsync("/tech-curse/Course",
+            new { titulo, descricao = "Descrição do curso", categoria, cargaHoraria = 10 }, Cancelamento);
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        return (await resposta.Content.ReadFromJsonAsync<JsonElement>(Cancelamento)).GetProperty("id").GetInt32();
+    }
+
+    protected static async Task<int> IdDoPerfilAsync(HttpClient aluno) =>
+        (await aluno.GetFromJsonAsync<JsonElement>("/tech-curse/Student/me", Cancelamento)).GetProperty("id").GetInt32();
+
+    protected static async Task<int> MatricularAsync(HttpClient aluno, int cursoId)
+    {
+        var idDoAluno = await IdDoPerfilAsync(aluno);
+        var resposta = await aluno.PostAsJsonAsync("/tech-curse/Enrollment", new { courseId = cursoId, studentId = idDoAluno }, Cancelamento);
+        Assert.True(resposta.IsSuccessStatusCode, $"Matrícula falhou com {(int)resposta.StatusCode}");
+        var matriculas = await aluno.GetFromJsonAsync<JsonElement>($"/tech-curse/Student/{idDoAluno}/enrollments", Cancelamento);
+        return matriculas.EnumerateArray().First(m => m.GetProperty("courseId").GetInt32() == cursoId).GetProperty("enrollmentId").GetInt32();
+    }
+
+    protected static Task<HttpResponseMessage> EnviarComChaveAsync(HttpClient cliente, string rota, object corpo, string chave)
+    {
+        var requisicao = new HttpRequestMessage(HttpMethod.Post, rota) { Content = JsonContent.Create(corpo) };
+        requisicao.Headers.Add("Idempotency-Key", chave);
+        return cliente.SendAsync(requisicao, Cancelamento);
+    }
+
+    protected static async Task<int> CriarPagamentoAsync(HttpClient admin, int matriculaId, decimal valor = 100m)
+    {
+        var resposta = await EnviarComChaveAsync(admin, "/tech-curse/Payment", new { enrollmentId = matriculaId, amount = valor }, Guid.NewGuid().ToString());
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        return (await resposta.Content.ReadFromJsonAsync<JsonElement>(Cancelamento)).GetProperty("paymentId").GetInt32();
+    }
+
     protected static async Task<string?> DetalheDoErroAsync(HttpResponseMessage resposta)
     {
         var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>(Cancelamento);

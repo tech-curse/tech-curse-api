@@ -156,15 +156,13 @@ O estado dos limites fica **na memória de cada processo**, por decisão: a API 
 *Quando* o mesmo usuário repete a requisição com a mesma `Idempotency-Key` em até 6 minutos
 *Então* a resposta tem o mesmo status e o mesmo corpo da primeira
 *E* a operação não é executada de novo
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** pela leitura do código, a repetição falha. O filtro serializa a resposta para texto e o `RedisCacheService.SetAsync` serializa de novo. Na leitura, o JSON guardado é uma string, que não pode ser convertida no modelo da resposta: a repetição deve terminar em `500`. O primeiro teste vai confirmar.
+**Status:** implementado
 
 **TRV-016: A chave vale só para o mesmo endpoint**
 *Dado* uma chave usada em `POST /Payment`
 *Quando* a mesma chave é enviada em `POST /Payment/process`
 *Então* o segundo endpoint executa normalmente, sem devolver a resposta do primeiro
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a chave do cache é só o valor do cabeçalho (separada por usuário, mas não por endpoint).
+**Status:** implementado
 
 **TRV-017: Erro não é guardado como resposta idempotente**
 *Quando* a primeira execução termina em erro (`4xx` ou `5xx`)
@@ -182,8 +180,7 @@ O estado dos limites fica **na memória de cada processo**, por decisão: a API 
 *Dado* um aluno que consultou os próprios pagamentos ou o catálogo (respostas guardadas em cache)
 *Quando* um Admin processa um pagamento desse aluno, ou edita ou remove um curso
 *Então* a próxima consulta do aluno já mostra o dado novo
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** as chaves de cache levam o id do usuário que consultou, e a invalidação apaga só as chaves de quem fez a escrita. O aluno continua vendo o status antigo por até 15 minutos, o prazo usado pelas consultas. O mesmo vale para cursos: um curso editado ou removido por um Admin continua aparecendo como antes para os alunos que já tinham consultado. Detalhes em `cursos.md` e `pagamentos.md`.
+**Status:** implementado
 
 ### Paginação
 
@@ -341,9 +338,6 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
 | `TRV-004` | `500` devolve a mensagem interna da exceção | Mensagem genérica com o código de correlação; detalhe só no log | Fase 3 |
-| `TRV-015` | Repetição com a mesma chave deve dar `500` (dupla serialização) | Guardar e ler o modelo sem a serialização extra | Fase 3 |
-| `TRV-016` | Chave de idempotência não separa endpoints | Incluir método e rota na chave | Fase 3 |
-| `TRV-019` | Escrita só limpa o cache de quem escreveu; os outros veem dado antigo por até 15 minutos | Dados compartilhados (catálogo, pagamentos) com chave sem usuário, invalidada por todos. A checagem de permissão ("é o próprio aluno?") acontece sempre **antes** de ler o cache, porque hoje é a chave por usuário que isola os dados de cada um | Fase 3 |
 | `TRV-031` | Página `0` dá `500`; tamanho `0` gera `totalPages` sem sentido | `422` para página ou tamanho menor que `1` | Fase 3 |
 | `TRV-013` | Limite por IP vê só o IP do proxy | Tratar `X-Forwarded-For` vindo do Nginx | Fase 6 |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
