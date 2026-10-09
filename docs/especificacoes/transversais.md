@@ -199,7 +199,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 
 **TRV-027: Página e tamanho padrão**
 *Quando* a listagem é chamada sem parâmetros
-*Então* a resposta traz a página `1`, com até `10` itens, ordenados pelo id em ordem crescente
+*Então* a resposta traz a página `1`, com até `10` itens, na ordem padrão da listagem: id crescente para cursos e alunos; mais recente primeiro para pagamentos (ver `pagamentos.md`)
 **Status:** implementado
 
 **TRV-028: Tamanho de página tem teto**
@@ -226,7 +226,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 
 **TRV-032: Ordenação desconhecida cai no padrão**
 *Quando* `SortBy` não é um dos campos aceitos pela listagem
-*Então* a ordenação é pelo id, na direção pedida, sem erro
+*Então* a listagem usa a ordem padrão dela, na direção pedida, sem erro (as de pagamento ignoram `SortBy` e `SortDirection`)
 **Status:** implementado
 
 ### Health checks
