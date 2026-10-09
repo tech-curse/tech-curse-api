@@ -20,6 +20,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- O cache de consultas passa a ser compartilhado entre usuários, e toda escrita invalida a consulta de todos. Antes, cada usuário tinha a própria cópia, e só a de quem escrevia era apagada: alunos viam cursos editados ou removidos e pagamentos desatualizados por até 15 minutos (`TRV-019`, `CUR-018`, `PAG-023`).
+- A repetição de uma escrita idempotente com a mesma `Idempotency-Key` devolve a resposta original; antes terminava em `500`, por causa de uma dupla serialização. A chave passa a separar usuário, método e rota (`TRV-015`, `TRV-016`).
 - O nome do registro é livre: espaços, acentos e nomes repetidos são aceitos (ex.: `"João da Silva"`), com 1 a 100 caracteres. O `UserName` do Identity passa a ser o e-mail, e o nome fica só no perfil de estudante. Antes, o nome virava o `UserName`, que só aceita `A-Z a-z 0-9 - . _ @ +` e precisa ser único (`AUTH-009`).
 - Versão reiniciada em `1.0.0` no `Directory.Build.props`.
 - O Swagger passa a ler a versão do assembly, em vez de um `"2.0.0"` fixo no código.

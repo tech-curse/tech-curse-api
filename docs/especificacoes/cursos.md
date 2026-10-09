@@ -146,15 +146,13 @@ Ordenações aceitas em `SortBy` (sem diferença entre maiúsculas e minúsculas
 *Dado* um aluno que já consultou o catálogo e o detalhe de um curso
 *Quando* um `Admin` cria, edita ou remove um curso
 *Então* a próxima consulta do aluno já reflete a mudança
-**Status:** divergente: correção proposta para a Fase 3 (ver `TRV-019`)
-**Hoje:** o catálogo é guardado em cache por usuário, por 15 minutos, e a escrita só limpa o cache de quem a fez. O aluno continua vendo o curso antigo, ou um curso removido, até o cache vencer.
+**Status:** implementado
 
 ## Divergências
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
 | `CUR-009` | Criação aceita categoria de qualquer tamanho; edição limita a 50 | Limite de 50 também na criação | Fase 3 |
-| `CUR-018` | Alunos veem o catálogo antigo por até 15 minutos | Cache compartilhado, invalidado em toda escrita (`TRV-019`) | Fase 3 |
 
 ## Fora de escopo
 

@@ -199,8 +199,7 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 *Dado* um aluno que consultou os próprios pagamentos
 *Quando* um `Admin` cria, processa ou estorna um pagamento dele
 *Então* a próxima consulta do aluno já mostra o estado novo
-**Status:** divergente: correção proposta para a Fase 3 (ver `TRV-019`)
-**Hoje:** o aluno vê o estado anterior por até 15 minutos.
+**Status:** implementado
 
 ## Divergências
 
@@ -211,7 +210,6 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 | `PAG-019` | Acesso a dado de outro aluno responde `409` | `403` | Fase 3 |
 | `PAG-020` | Admin não vê, pela rota por aluno, os pagamentos de aluno removido | Consultar o aluno ignorando o filtro de removidos | Fase 3 |
 | `PAG-022` | Matrícula sem pagamentos responde `404` | `200` com lista vazia; `404` só para matrícula inexistente | Fase 3 |
-| `PAG-023` | Aluno vê estado antigo por até 15 minutos | Cache compartilhado e invalidado (`TRV-019`) | Fase 3 |
 | `PAG-013` | Processamento concorrente cobra duas vezes | Controle de concorrência no pagamento | Com o gateway real |
 | `PAG-016` | Motivo do estorno é descartado | Guardar e expor | Com o gateway real |
 
