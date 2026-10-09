@@ -66,7 +66,7 @@ public static class DbInitializer
 
         var admin = new IdentityUser
         {
-            UserName = email.Split('@')[0],
+            UserName = email,
             Email = email,
             EmailConfirmed = true
         };
