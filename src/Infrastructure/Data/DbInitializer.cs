@@ -58,8 +58,8 @@ public static class DbInitializer
             {
                 var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(CategoriaDoLog);
                 logger.LogWarning(
-                    "O e-mail {Email} configurado para o Admin semeado já pertence a um usuário sem a role Admin; o seed não alterou esse usuário.",
-                    email);
+                    "O e-mail configurado em {ChaveDeConfiguracao} já pertence a um usuário sem a role Admin; o seed não alterou esse usuário.",
+                    ChaveEmailAdmin);
             }
 
             return;
