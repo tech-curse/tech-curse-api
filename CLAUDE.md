@@ -198,7 +198,9 @@ Não há lazy loading para salvar de um `Include` esquecido: `Microsoft.EntityFr
 
 Repositório `tech-curse/tech-curse-api`, importado sem histórico. Desenvolvimento trunk-based: branch curta a partir de `main`, PR com título em Conventional Commits e **squash merge**. A `main` está sempre implantável; nada de push direto. Commits em pt-BR (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`, `style:`, `build:`, `ci:`), sem linhas de atribuição de IA em commits ou PRs. Mudanças notáveis entram no `CHANGELOG.md`, seção `[Não lançado]`, no mesmo PR.
 
-A proteção da `main` (PR obrigatório, checks obrigatórios, sem push direto) só é ativada depois que o CI existir e estiver verde.
+A `main` é protegida pelo ruleset `protecao-da-main`: PR obrigatório, só squash merge, check `ci` obrigatório (publicado pelo app GitHub Actions) com a branch atualizada em relação à `main`, histórico linear, sem force push e sem apagar a branch. Não há exceção nem para administrador. Um PR atrasado em relação à `main` precisa de "Update branch" e de um novo `ci` verde antes do merge.
+
+Dependabot (`.github/dependabot.yml`): NuGet e GitHub Actions toda segunda, minor e patch agrupados, cooldown de 7 dias que não se aplica a correções de segurança. Secret scanning, push protection, reporte privado de vulnerabilidade e CodeQL (*default setup*) estão ligados no repositório.
 
 Templates de issue e de PR, `CONTRIBUTING.md` e `SECURITY.md` vêm do repositório `tech-curse/.github` da organização; não duplique aqui.
 
