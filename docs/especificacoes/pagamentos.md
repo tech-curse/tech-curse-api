@@ -170,8 +170,7 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 **PAG-019: Aluno não vê pagamentos de outro**
 *Quando* um aluno chama `GET /Payment/student/{id}`, `GET /Payment/{id}` ou `GET /Payment/enrollment/{id}` para dados de outro aluno
 *Então* a resposta é `403`, com `detail` = `"Você não possuí permissão suficiente para acessar este registro!"`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a resposta é `409` (`NotAllowedException`), como em `ALU-005`. A checagem acontece antes da leitura do cache, o que está correto e deve continuar assim (ver `TRV-019`).
+**Status:** implementado
 
 **PAG-020: Admin vê os pagamentos de um aluno removido**
 *Dado* um aluno removido que tinha pagamentos
@@ -207,7 +206,6 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 | --- | --- | --- | --- |
 | `PAG-004` | Criação concorrente bate no índice único e vira `500` | Traduzir a violação do índice para `409` | Fase 3 |
 | `PAG-011` | `Pix` e `Boleto` geram `500` | `422` com `errors.Type` | Fase 3 |
-| `PAG-019` | Acesso a dado de outro aluno responde `409` | `403` | Fase 3 |
 | `PAG-020` | Admin não vê, pela rota por aluno, os pagamentos de aluno removido | Consultar o aluno ignorando o filtro de removidos | Fase 3 |
 | `PAG-022` | Matrícula sem pagamentos responde `404` | `200` com lista vazia; `404` só para matrícula inexistente | Fase 3 |
 | `PAG-013` | Processamento concorrente cobra duas vezes | Controle de concorrência no pagamento | Com o gateway real |

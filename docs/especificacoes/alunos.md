@@ -61,8 +61,7 @@ Rotas sob `/tech-curse/Student`.
 **ALU-005: Aluno não vê o perfil de outro aluno**
 *Quando* um aluno chama `GET /Student/{id}` com o id de outro aluno
 *Então* a resposta é `403`, com `detail` = `"Você não possui permissão suficiente para acessar este registro."`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a resposta é `409 Conflict`: a checagem usa `NotAllowedException`, que o middleware mapeia para `409`. O mesmo acontece em `ALU-011` e `ALU-019`.
+**Status:** implementado
 
 **ALU-006: Perfil inexistente ou removido**
 *Quando* `GET /Student/{id}` usa um id que não existe ou de um aluno removido
@@ -99,7 +98,7 @@ Rotas sob `/tech-curse/Student`.
 **ALU-011: Aluno não edita o perfil de outro**
 *Quando* um aluno envia `PUT /Student/{id}` com o id de outro aluno
 *Então* a resposta é `403`, com `detail` = `"Você não possui permissão suficiente para atualizar este registro."`, e nada muda
-**Status:** divergente: correção proposta para a Fase 3 (hoje `409`, como em `ALU-005`)
+**Status:** implementado
 
 **ALU-012: Nome inválido é recusado**
 *Quando* o nome está vazio ou passa de 100 caracteres
@@ -151,7 +150,7 @@ Rotas sob `/tech-curse/Student`.
 *Então* a resposta é `200`, com uma entrada por matrícula: `courseId`, `titulo`, `descricao`, `categoria`, `matriculaAtiva` e `enrollmentId`
 *Quando* um aluno chama com o id de outro aluno
 *Então* a resposta é `403`
-**Status:** divergente na parte do outro aluno (hoje `409`, como em `ALU-005`); o restante, implementado
+**Status:** implementado
 
 ### Criação de perfil por Admin
 
@@ -164,7 +163,6 @@ Rotas sob `/tech-curse/Student`.
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `ALU-005`, `ALU-011`, `ALU-019` | Acesso a perfil de outro aluno responde `409` | `403` | Fase 3 |
 | `ALU-008` | Listagem sem ordenação: alunos repetidos ou omitidos entre páginas | Ordem por id, ou por `nome` / `datacadastro` | Fase 3 |
 | `ALU-020` | `POST /Student` sem uso e com falhas próprias | Remover o endpoint | Fase 3 |
 

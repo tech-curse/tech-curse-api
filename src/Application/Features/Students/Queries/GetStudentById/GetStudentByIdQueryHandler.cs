@@ -26,7 +26,7 @@ public class GetStudentByIdQueryHandler : IRequestHandler<GetStudentByIdQuery, S
 
         if (currentUserId != targetIdentityUserId && !isAdmin)
         {
-            throw new NotAllowedException("Você não possui permissão suficiente para acessar este registro.");
+            throw new ForbiddenAccessException("Você não possui permissão suficiente para acessar este registro.");
         }
     }
 

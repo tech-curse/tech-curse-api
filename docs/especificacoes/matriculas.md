@@ -48,8 +48,7 @@ Registrar que um aluno está inscrito num curso. A matrícula é o vínculo que 
 *Então* a resposta é `403`, com `detail` = `"Apenas estudantes e administradores podem criar matrículas!"`
 *Quando* a chamada vem sem token
 *Então* a resposta é `401`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** o `Instructor` recebe `409 Conflict` (`NotAllowedException`), como em `ALU-005`.
+**Status:** implementado
 
 **MAT-005: Matrícula duplicada é recusada**
 *Dado* um aluno já matriculado num curso, com a matrícula ativa ou não
@@ -92,7 +91,6 @@ Registrar que um aluno está inscrito num curso. A matrícula é o vínculo que 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
 | `MAT-001` | `202 Accepted` para uma operação já concluída | `201 Created` | Fase 3 |
-| `MAT-004` | `Instructor` recebe `409` | `403` | Fase 3 |
 | `MAT-006` | Clique duplo cria duas matrículas no mesmo curso | Índice único em (aluno, curso) no banco, com a violação traduzida para `409` | Fase 3 |
 
 ## Fora de escopo
