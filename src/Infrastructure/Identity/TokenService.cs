@@ -19,6 +19,8 @@ public class TokenService : ITokenService
 
     private const int DiasDeValidadeDoRefreshTokenPadrao = 7;
 
+    private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
+
     private readonly IConfiguration _configuration;
 
     public TokenService(IConfiguration configuration)
@@ -43,7 +45,7 @@ public class TokenService : ITokenService
 
         var expiresAt = DateTime.UtcNow.AddHours(2);
 
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SigningKey"]!);
+        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SigningKey"]!);
         var credential = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature);
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -102,7 +104,7 @@ public class TokenService : ITokenService
 
     public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
     {
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:SigningKey"]!);
+        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SigningKey"]!);
 
         var tokenValidationParameters = new TokenValidationParameters
         {
@@ -116,12 +118,22 @@ public class TokenService : ITokenService
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+        ClaimsPrincipal principal;
+        SecurityToken securityToken;
+
+        try
+        {
+            principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
+        }
+        catch (Exception erro) when (erro is SecurityTokenException or ArgumentException)
+        {
+            throw new UnauthorizedException(MensagemDeRefreshInvalido);
+        }
 
         if (securityToken is not JwtSecurityToken jwtSecurityToken ||
             !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
         {
-            throw new ForbiddenAccessException("Token inválido");
+            throw new UnauthorizedException(MensagemDeRefreshInvalido);
         }
 
         return principal;

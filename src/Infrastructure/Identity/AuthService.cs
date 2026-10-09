@@ -18,6 +18,8 @@ public class AuthService : IAuthService
 
     private const string NomeDaExpiracaoDoRefreshToken = "RefreshTokenExpiry";
 
+    private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
+
     private readonly UserManager<IdentityUser> _userManager;
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly ITokenService _tokenService;
@@ -168,25 +170,25 @@ public class AuthService : IAuthService
         var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (userId == null)
-            throw new UnauthorizedException("Refresh Token inválido ou expirado.");
+            throw new UnauthorizedException(MensagemDeRefreshInvalido);
 
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
-            throw new NotFoundException("Usuário não encontrado");
+            throw new UnauthorizedException(MensagemDeRefreshInvalido);
 
         var hashPersistido = await _userManager.GetAuthenticationTokenAsync(
             user, ProvedorDeLogin, NomeDoRefreshToken);
 
-        if (!await RefreshTokenEstaVigenteAsync(user))
+        if (await _userManager.IsLockedOutAsync(user) || !await RefreshTokenEstaVigenteAsync(user))
         {
             await RevogarRefreshTokenAsync(user);
 
-            throw new UnauthorizedException("Refresh Token inválido ou expirado.");
+            throw new UnauthorizedException(MensagemDeRefreshInvalido);
         }
 
         if (!_tokenService.RefreshTokenMatches(input.RefreshToken, hashPersistido))
         {
-            throw new UnauthorizedException("Refresh Token inválido ou expirado.");
+            throw new UnauthorizedException(MensagemDeRefreshInvalido);
         }
 
         var roles = await _userManager.GetRolesAsync(user);

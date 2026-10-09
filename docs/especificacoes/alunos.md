@@ -130,8 +130,7 @@ Rotas sob `/tech-curse/Student`.
 *Dado* um aluno logado que é removido por um `Admin`
 *Quando* o cliente dele tenta renovar a sessão com `POST /Auth/refresh`
 *Então* a resposta é `401` (ver `AUTH-039`)
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a remoção bloqueia a conta para login, mas o refresh não verifica o bloqueio. O aluno removido renova a sessão a cada 7 dias, indefinidamente, enquanto o cliente continuar ativo.
+**Status:** implementado
 
 **ALU-017: Só Admin remove**
 *Quando* um `Student` ou um `Instructor` envia `DELETE /Student/{id}`
@@ -167,7 +166,6 @@ Rotas sob `/tech-curse/Student`.
 | --- | --- | --- | --- |
 | `ALU-005`, `ALU-011`, `ALU-019` | Acesso a perfil de outro aluno responde `409` | `403` | Fase 3 |
 | `ALU-008` | Listagem sem ordenação: alunos repetidos ou omitidos entre páginas | Ordem por id, ou por `nome` / `datacadastro` | Fase 3 |
-| `ALU-016` | Aluno removido renova a sessão para sempre | Refresh recusa conta bloqueada (`AUTH-039`) | Fase 3 |
 | `ALU-020` | `POST /Student` sem uso e com falhas próprias | Remover o endpoint | Fase 3 |
 
 ## Fora de escopo

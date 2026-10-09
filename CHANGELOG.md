@@ -34,4 +34,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Segurança
 
+- O refresh recusa com `401` uma conta bloqueada e apaga o refresh token dela. Antes, um aluno removido por um Admin, que já não conseguia fazer login, continuava renovando a sessão indefinidamente (`AUTH-039`, `ALU-016`).
+- O refresh responde `401` para access token malformado, com assinatura de outra chave ou com outro algoritmo, e para usuário que não existe mais. Antes respondia `500` com a mensagem interna da biblioteca de JWT, `403` ou `404` (`AUTH-027`, `AUTH-028`).
+- A chave de assinatura do JWT é convertida em UTF-8 na emissão e na validação; antes a emissão usava ASCII, e uma chave com acento gerava tokens que a própria API recusava (`AUTH-036`).
 - O seed do Admin de desenvolvimento não grava mais o e-mail configurado no log de aviso; a mensagem cita só a chave `Seed:Admin:Email` (alerta `cs/exposure-of-sensitive-information` do CodeQL).
