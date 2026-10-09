@@ -5,4 +5,8 @@
     <Project Path="src/Infrastructure/TechCurse.Infrastructure.csproj" />
     <Project Path="src/Api/TechCurse.Api.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TechCurse.Api.IntegrationTests/TechCurse.Api.IntegrationTests.csproj" />
+    <Project Path="tests/TechCurse.UnitTests/TechCurse.UnitTests.csproj" />
+  </Folder>
 </Solution>
