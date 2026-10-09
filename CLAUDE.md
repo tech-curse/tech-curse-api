@@ -17,7 +17,9 @@ API REST em .NET 10 / C# 14 para uma plataforma de cursos (cursos, estudantes, m
 
 O banco foi SQL Server até setembro de 2026. A troca foi de schema, não de dados — não havia produção — e as migrations foram regeradas do zero contra o Npgsql; não existe caminho de upgrade a partir de um banco SQL Server. Ver "Armadilhas conhecidas" para o que a troca ensinou.
 
-A collection do Postman fica em `docs/`.
+**O comportamento esperado da API está em [`docs/especificacoes/`](docs/especificacoes/README.md)**, a fonte da verdade para regras, contrato HTTP e cenários com ID (`AUTH-014`). Os testes derivam de lá e declaram o cenário com `[Trait("Especificacao", "<ID>")]`. Mudou comportamento: atualize especificação, código e teste no mesmo PR. Cenário marcado **divergente** descreve o comportamento desejado, não o atual.
+
+A collection do Postman fica em `docs/`. O diagrama de arquitetura vive no README, em Mermaid, para não envelhecer separado do texto.
 
 ### Twelve-Factor
 
@@ -27,7 +29,7 @@ A API segue o [Twelve-Factor App](https://12factor.net/pt_br/); o checklist por 
 - **Nunca use `IsDevelopment()`, `IsProduction()` ou `IsEnvironment()` para ligar ou desligar funcionalidade.** O nome do ambiente só aparece em travas de segurança, como segunda barreira (`TRV-033`, `AUTH-038`).
 - **Estado fica fora do processo**: PostgreSQL ou Redis. A única exceção aceita é o rate limiting em memória, enquanto houver uma réplica.
 - **Logs só no stdout**, via `ILogger`/Serilog. Nunca escreva arquivo de log nem envie logs por conta própria; a exportação é do OpenTelemetry, configurado por variáveis `OTEL_*` (`TRV-038`).
-- **Tarefa administrativa** (migration, criação de Admin, correção de dados) é um comando avulso que roda com a mesma imagem e a mesma configuração da release, nunca código no startup (`TRV-024`, `TRV-035`). O diagrama de arquitetura vive no README, em Mermaid, para não envelhecer separado do texto.
+- **Tarefa administrativa** (migration, criação de Admin, correção de dados) é um comando avulso que roda com a mesma imagem e a mesma configuração da release, nunca código no startup (`TRV-024`, `TRV-035`).
 
 ## Comandos
 
