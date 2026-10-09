@@ -1,9 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 
 namespace TechCurse.Api.IntegrationTests.Infraestrutura;
 
@@ -113,6 +116,28 @@ public abstract class TesteDeIntegracao(AmbienteDeTeste ambiente) : IAsyncLifeti
         var resposta = await EnviarComChaveAsync(admin, "/tech-curse/Payment", new { enrollmentId = matriculaId, amount = valor }, Guid.NewGuid().ToString());
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
         return (await resposta.Content.ReadFromJsonAsync<JsonElement>(Cancelamento)).GetProperty("paymentId").GetInt32();
+    }
+
+    protected static string TokenAssinado(string usuarioId, string email, string papel, byte[] chave, string algoritmo,
+        DateTime expiraEm, string emissor = TechCurseApiFactory.Emissor, string audiencia = TechCurseApiFactory.Audiencia)
+    {
+        var descritor = new SecurityTokenDescriptor
+        {
+            Issuer = emissor,
+            Audience = audiencia,
+            Subject = new ClaimsIdentity([
+                new Claim(ClaimTypes.NameIdentifier, usuarioId),
+                new Claim(ClaimTypes.Email, email),
+                new Claim(ClaimTypes.Role, papel)
+            ]),
+            NotBefore = expiraEm.AddHours(-2),
+            IssuedAt = expiraEm.AddHours(-2),
+            Expires = expiraEm,
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(chave), algoritmo)
+        };
+
+        var manipulador = new JwtSecurityTokenHandler();
+        return manipulador.WriteToken(manipulador.CreateToken(descritor));
     }
 
     protected static async Task<string?> DetalheDoErroAsync(HttpResponseMessage resposta)

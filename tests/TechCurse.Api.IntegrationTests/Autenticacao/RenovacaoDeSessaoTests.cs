@@ -30,25 +30,6 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
         return await usuarios.GetAuthenticationTokenAsync(usuario!, "JWTApp", "RefreshToken");
     }
 
-    private string TokenAssinado(string usuarioId, string email, byte[] chave, string algoritmo)
-    {
-        var descritor = new SecurityTokenDescriptor
-        {
-            Issuer = TechCurseApiFactory.Emissor,
-            Audience = TechCurseApiFactory.Audiencia,
-            Subject = new ClaimsIdentity([
-                new Claim(ClaimTypes.NameIdentifier, usuarioId),
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Role, "Student")
-            ]),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(chave), algoritmo)
-        };
-
-        var manipulador = new JwtSecurityTokenHandler();
-        return manipulador.WriteToken(manipulador.CreateToken(descritor));
-    }
-
     private static string IdDoUsuario(string accessToken) =>
         new JwtSecurityTokenHandler().ReadJwtToken(accessToken).Claims.First(claim => claim.Type == "nameid").Value;
 
@@ -129,8 +110,8 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
     public async Task Access_token_com_assinatura_de_outra_chave_responde_401()
     {
         var sessao = await RegistrarEEntrarAsync();
-        var adulterado = TokenAssinado(IdDoUsuario(sessao.AccessToken), sessao.Email,
-            RandomNumberGenerator.GetBytes(48), SecurityAlgorithms.HmacSha256);
+        var adulterado = TokenAssinado(IdDoUsuario(sessao.AccessToken), sessao.Email, "Student",
+            RandomNumberGenerator.GetBytes(48), SecurityAlgorithms.HmacSha256, DateTime.UtcNow.AddHours(1));
 
         var resposta = await RenovarAsync(adulterado, sessao.RefreshToken);
 
@@ -143,8 +124,8 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
     public async Task Access_token_com_outro_algoritmo_responde_401()
     {
         var sessao = await RegistrarEEntrarAsync();
-        var outroAlgoritmo = TokenAssinado(IdDoUsuario(sessao.AccessToken), sessao.Email,
-            Encoding.UTF8.GetBytes(Ambiente.Fabrica.ChaveDeAssinatura), SecurityAlgorithms.HmacSha512);
+        var outroAlgoritmo = TokenAssinado(IdDoUsuario(sessao.AccessToken), sessao.Email, "Student",
+            Encoding.UTF8.GetBytes(Ambiente.Fabrica.ChaveDeAssinatura), SecurityAlgorithms.HmacSha512, DateTime.UtcNow.AddHours(1));
 
         var resposta = await RenovarAsync(outroAlgoritmo, sessao.RefreshToken);
 

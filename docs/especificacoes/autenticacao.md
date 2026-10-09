@@ -135,8 +135,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *Quando* o login usa um e-mail não cadastrado
 *Ou* um e-mail cadastrado com a senha errada
 *Então* as duas respostas são iguais: `401`, com `detail` = `"E-mail ou senha incorretos."`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** e-mail inexistente responde `"E-mail ou senha incorretos."`, mas senha errada responde `"Usuário não autenticado."`. A diferença permite descobrir quais e-mails estão cadastrados, e o web mostra a segunda mensagem ao usuário. O Swagger também documenta `400` para credenciais inválidas, mas o código devolve `401`.
+**Status:** implementado
 
 **AUTH-017: Login não depende de confirmação de e-mail**
 *Dado* um usuário recém-registrado
@@ -284,7 +283,6 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `AUTH-016` | Mensagens diferentes para e-mail inexistente e senha errada; Swagger documenta `400` | A mesma resposta `401` para os dois casos; Swagger corrigido | Fase 3 |
 | `AUTH-018` | Lockout configurado, mas nunca aplicado | Aplicar | Fase 5 |
 
 ## Fora de escopo
