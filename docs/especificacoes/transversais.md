@@ -11,6 +11,7 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 3. Todo erro de regra de negócio sai no formato `ProblemDetails` (`TRV-001`). Nenhuma resposta de erro expõe detalhes internos: mensagem de exceção inesperada, stack trace, nome de servidor ou endereço.
 4. Toda resposta carrega um identificador de correlação, que também aparece nos logs daquela requisição.
 5. A API só sobe com as dependências obrigatórias configuradas.
+6. O que muda entre desenvolvimento, staging e produção é ligado por configuração explícita (`Payments:Enabled`, `Swagger:Enabled`), nunca pelo nome do ambiente. Cada chave tem o padrão seguro, que é desligado: produção funciona sem declarar nada. O nome do ambiente só aparece em travas de segurança que impedem um erro de configuração de chegar a produção (`TRV-033`, `AUTH-038`), e nunca como o único jeito de ligar ou desligar uma funcionalidade.
 
 ## Contrato
 
@@ -261,17 +262,29 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *Então* ela não altera o schema do banco; as migrations são aplicadas por uma etapa explícita do deploy, antes da nova versão entrar no ar
 **Status:** planejado (Fase 7). Hoje o `Program.cs` aplica as migrations no startup e, se falharem, a API não sobe.
 
-**TRV-025: Produção sobe sem o módulo de pagamentos**
-*Quando* a API sobe com `ASPNETCORE_ENVIRONMENT=Production`
-*Então* ela sobe e responde normalmente, e os endpoints de pagamento não estão disponíveis
-**Status:** planejado (antes do primeiro deploy em produção; issue #1). Hoje a API se recusa a subir em `Production`, porque o único gateway de pagamento é simulado.
+**TRV-025: O módulo de pagamentos é ligado por configuração**
+*Quando* a API sobe com `Payments:Enabled` = `false` ou sem a chave
+*Então* ela sobe e responde normalmente, as rotas de `/tech-curse/Payment` respondem `404` e não aparecem no Swagger
+*Quando* sobe com `Payments:Enabled` = `true`
+*Então* as rotas de pagamento estão disponíveis
+**Status:** planejado (antes do primeiro deploy em produção; issue #1). Hoje a chave não existe: as rotas de pagamento estão sempre registradas, e a API se recusa a subir em `Production` (ver `TRV-033`).
 
-**TRV-026: Swagger só fora de produção**
-*Quando* a API roda em `Development` ou em staging
+**TRV-026: Swagger ligado por configuração**
+*Quando* `Swagger:Enabled` = `true`
 *Então* `/swagger` está disponível
-*Quando* roda em produção
+*Quando* `Swagger:Enabled` = `false` ou a chave não existe
 *Então* `/swagger` responde `404`
-**Status:** implementado com o nome de ambiente `Homolog`; a Fase 6 troca para `Staging`.
+*E* desenvolvimento e staging ligam a chave; produção não a declara
+**Status:** divergente: correção proposta para a Fase 6 (ambientes)
+**Hoje:** o Swagger aparece quando o ambiente se chama `Development` ou `Homolog`. Um staging com outro nome, como o `Staging` previsto para a Fase 6, fica sem Swagger.
+
+**TRV-033: Gateway simulado nunca em produção**
+*Dado* que o único gateway de pagamento disponível é o simulado
+*Quando* a API sobe em `Production` com `Payments:Enabled` = `true`
+*Então* a aplicação falha no startup, com uma mensagem que diz que não há gateway real configurado
+*Quando* sobe em `Production` com os pagamentos desligados
+*Então* sobe normalmente (`TRV-025`)
+**Status:** planejado (junto com `TRV-025`; issue #1). Hoje a trava derruba a API em `Production` mesmo com os pagamentos desligados, porque a chave ainda não existe. A trava olha o nome do ambiente de propósito: é a segunda barreira, para o caso de a chave ser ligada por engano em produção, e um gateway que fabrica aprovações confirmaria cobranças que nunca aconteceram.
 
 ## Divergências
 
@@ -284,7 +297,9 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 | `TRV-031` | Página `0` dá `500`; tamanho `0` gera `totalPages` sem sentido | `422` para página ou tamanho menor que `1` | Fase 3 |
 | `TRV-013` | Limite por IP vê só o IP do proxy | Tratar `X-Forwarded-For` vindo do Nginx | Fase 6 |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
-| `TRV-025` | API não sobe em `Production` | Subir sem o módulo de pagamentos | Antes do 1º deploy |
+| `TRV-025` | API não sobe em `Production`; pagamentos sempre registrados | `Payments:Enabled`, desligado por padrão | Antes do 1º deploy |
+| `TRV-026` | Swagger decidido pelos nomes de ambiente `Development` e `Homolog` | `Swagger:Enabled`, desligado por padrão | Fase 6 |
+| `TRV-033` | Trava derruba a API em `Production` mesmo sem pagamentos | Trava só quando `Payments:Enabled` = `true` com o gateway simulado | Antes do 1º deploy |
 
 ## Fora de escopo
 
