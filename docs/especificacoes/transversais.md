@@ -222,7 +222,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *Quando* `PageNumber` ou `PageSize` é menor que `1`
 *Então* a resposta é `422`, com `errors` apontando o parâmetro inválido
 **Status:** divergente: correção proposta para a Fase 3
-**Hoje:** `PageNumber` = `0` gera um `OFFSET` negativo, que o PostgreSQL recusa: `500`. `PageSize` = `0` divide por zero no cálculo de `totalPages`, que, havendo registros, sai como `2147483647`, com `hasNextPage` = `true`. O web lê a página da URL, então `?pagina=0` no navegador já provoca o `500`.
+**Hoje:** `PageNumber` = `0` gera um `OFFSET` negativo, que o PostgreSQL recusa: `500`. `PageSize` = `0` divide por zero no cálculo de `totalPages`, que, havendo registros, sai como `2147483647`, com `hasNextPage` = `true`. O catálogo do web troca uma página inválida da URL por `1`, então o `500` aparece só para quem chama a API diretamente.
 
 **TRV-032: Ordenação desconhecida cai no padrão**
 *Quando* `SortBy` não é um dos campos aceitos pela listagem
