@@ -25,12 +25,15 @@ builder.Services.AddRedisCacheSetup(builder.Configuration);
 builder.Services.AddDataProtectionSetup();
 builder.Services.AddRateLimitingSetup(builder.Configuration);
 builder.Services.AddCorsSetup(builder.Configuration);
+builder.Services.AddForwardedHeadersSetup(builder.Configuration);
 
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocumentationSetup(builder.Configuration);
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();

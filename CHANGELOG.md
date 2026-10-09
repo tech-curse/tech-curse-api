@@ -31,3 +31,4 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 ### Segurança
 
 - O seed do Admin de desenvolvimento não grava mais o e-mail configurado no log de aviso; a mensagem cita só a chave `Seed:Admin:Email` (alerta `cs/exposure-of-sensitive-information` do CodeQL).
+- Atrás de um proxy reverso, a API passa a usar o IP do cliente informado em `X-Forwarded-For` e o esquema de `X-Forwarded-Proto`, aceitos só de proxies confiáveis (`ForwardedHeaders:KnownProxies` e `ForwardedHeaders:KnownNetworks`, além do loopback). Antes, todas as requisições chegavam com o IP do proxy, e o limite de autenticação (10 por minuto) passaria a valer para todos os usuários juntos.
