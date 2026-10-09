@@ -209,15 +209,13 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 **AUTH-027: Access token adulterado no refresh é recusado com 401**
 *Quando* o `accessToken` enviado ao `POST /refresh` está malformado, tem assinatura inválida ou usa outro algoritmo
 *Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** token malformado ou com assinatura inválida gera exceção não tratada: `500`, com a mensagem interna da biblioteca de JWT no `detail`. Algoritmo diferente responde `403`.
+**Status:** implementado
 
 **AUTH-028: Usuário removido não renova a sessão**
 *Dado* um par de tokens de um usuário que não existe mais
 *Quando* o cliente tenta o refresh
 *Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a resposta é `404`, com `"Usuário não encontrado"`.
+**Status:** implementado
 
 **AUTH-029: Um novo login invalida a sessão anterior**
 *Dado* um usuário logado num dispositivo
@@ -235,8 +233,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *Quando* o cliente dele envia `POST /refresh` com um par de tokens que era válido
 *Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
 *E* o refresh token dele é apagado
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** o refresh não verifica bloqueio. O login de uma conta bloqueada é recusado, mas a sessão já aberta é renovada indefinidamente.
+**Status:** implementado
 
 ### Sessão: evoluções planejadas
 
@@ -271,8 +268,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *Dado* um `Jwt:SigningKey` com caracteres fora do ASCII
 *Quando* um usuário faz login e usa o token
 *Então* o token é aceito
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a emissão converte a chave com `Encoding.ASCII` e a validação com `Encoding.UTF8`. Uma chave com caractere fora do ASCII gera tokens que a própria API recusa. Chaves geradas com `openssl rand -base64 48` não são afetadas.
+**Status:** implementado
 
 **AUTH-037: Endpoints de autenticação têm limite de requisições próprio**
 *Dado* um mesmo cliente
@@ -294,10 +290,6 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 | --- | --- | --- | --- |
 | `AUTH-009` | Nome vira `UserName`: sem espaço, sem acento e único | O `UserName` passa a ser o e-mail; o nome fica livre no perfil de estudante. O web deixa de restringir o campo | Fase 3 (API e web) |
 | `AUTH-016` | Mensagens diferentes para e-mail inexistente e senha errada; Swagger documenta `400` | A mesma resposta `401` para os dois casos; Swagger corrigido | Fase 3 |
-| `AUTH-027` | `500` com mensagem interna, ou `403` | `401` | Fase 3 |
-| `AUTH-028` | `404` | `401` | Fase 3 |
-| `AUTH-036` | ASCII na emissão, UTF-8 na validação | UTF-8 nas duas | Fase 3 |
-| `AUTH-039` | Refresh renova a sessão de conta bloqueada (aluno removido mantém acesso) | Recusar e apagar o refresh token | Fase 3 |
 | `AUTH-018` | Lockout configurado, mas nunca aplicado | Aplicar | Fase 5 |
 
 ## Fora de escopo
