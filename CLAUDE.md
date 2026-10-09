@@ -17,6 +17,8 @@ API REST em .NET 10 / C# 14 para uma plataforma de cursos (cursos, estudantes, m
 
 O banco foi SQL Server até setembro de 2026. A troca foi de schema, não de dados — não havia produção — e as migrations foram regeradas do zero contra o Npgsql; não existe caminho de upgrade a partir de um banco SQL Server. Ver "Armadilhas conhecidas" para o que a troca ensinou.
 
+**O comportamento esperado da API está em [`docs/especificacoes/`](docs/especificacoes/README.md)**, a fonte da verdade para regras, contrato HTTP e cenários com ID (`AUTH-014`). Os testes derivam de lá e declaram o cenário com `[Trait("Especificacao", "<ID>")]`. Mudou comportamento: atualize especificação, código e teste no mesmo PR. Cenário marcado **divergente** descreve o comportamento desejado, não o atual.
+
 A collection do Postman fica em `docs/`. O diagrama de arquitetura vive no README, em Mermaid, para não envelhecer separado do texto.
 
 ## Comandos
