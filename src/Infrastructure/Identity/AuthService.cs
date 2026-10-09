@@ -20,6 +20,8 @@ public class AuthService : IAuthService
 
     private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
 
+    private const string MensagemDeCredenciaisInvalidas = "E-mail ou senha incorretos.";
+
     private const int TamanhoMaximoDoNome = 100;
 
     private static readonly HashSet<string> CodigosDeUserName = ["DuplicateUserName", "InvalidUserName"];
@@ -156,13 +158,13 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByEmailAsync(input.Email);
         if (user == null)
         {
-            throw new UnauthorizedException("E-mail ou senha incorretos.");
+            throw new UnauthorizedException(MensagemDeCredenciaisInvalidas);
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, input.Password, lockoutOnFailure: false);
         if (!result.Succeeded)
         {
-            throw new UnauthorizedException("Usuário não autenticado.");
+            throw new UnauthorizedException(MensagemDeCredenciaisInvalidas);
         }
 
         var roles = await _userManager.GetRolesAsync(user);

@@ -62,8 +62,7 @@ public class AuthController : ControllerBase
         Description = "**Acesso:** Público."
     )]
     [SwaggerResponse(StatusCodes.Status200OK, "Autenticação bem-sucedida. Retorna o Token JWT.", typeof(AuthOutputDto))]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "Credenciais inválidas.", typeof(ProblemDetails))]
-    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Usuário não autenticado ou inativo.", typeof(ProblemDetails))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "E-mail ou senha incorretos, ou conta bloqueada.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Limite de tentativas de login excedido.", typeof(ProblemDetails))]
     public async Task<IActionResult> Login([FromBody] LoginInputDto input)
     {
