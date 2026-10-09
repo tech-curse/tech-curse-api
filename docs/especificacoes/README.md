@@ -6,14 +6,16 @@ Ela não explica *como* o código é organizado nem *por que* uma técnica foi e
 
 ## Áreas
 
-| Área | Arquivo | Prefixo | Situação |
-| --- | --- | --- | --- |
-| Autenticação e sessão | [autenticacao.md](autenticacao.md) | `AUTH` | escrita |
-| Cursos | `cursos.md` | `CUR` | a escrever |
-| Alunos | `alunos.md` | `ALU` | a escrever |
-| Matrículas | `matriculas.md` | `MAT` | a escrever |
-| Pagamentos | `pagamentos.md` | `PAG` | a escrever |
-| Comportamentos transversais (erros, rate limiting, CORS, health checks, idempotência) | `transversais.md` | `TRV` | a escrever |
+| Área | Arquivo | Prefixo |
+| --- | --- | --- |
+| Autenticação e sessão | [autenticacao.md](autenticacao.md) | `AUTH` |
+| Cursos | [cursos.md](cursos.md) | `CUR` |
+| Alunos | [alunos.md](alunos.md) | `ALU` |
+| Matrículas | [matriculas.md](matriculas.md) | `MAT` |
+| Pagamentos | [pagamentos.md](pagamentos.md) | `PAG` |
+| Comportamentos transversais (erros, rate limiting, CORS, health checks, idempotência) | [transversais.md](transversais.md) | `TRV` |
+
+Cada área entra num pull request próprio; um link pode apontar para um arquivo ainda em revisão.
 
 ## Como ler um cenário
 
