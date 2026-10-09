@@ -12,6 +12,7 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 4. Toda resposta carrega um identificador de correlação, que também aparece nos logs daquela requisição.
 5. A API só sobe com as dependências obrigatórias configuradas.
 6. O que muda entre desenvolvimento, staging e produção é ligado por configuração explícita (`Payments:Enabled`, `Swagger:Enabled`), nunca pelo nome do ambiente. Cada chave tem o padrão seguro, que é desligado: produção funciona sem declarar nada. O nome do ambiente só aparece em travas de segurança que impedem um erro de configuração de chegar a produção (`TRV-033`, `AUTH-038`), e nunca como o único jeito de ligar ou desligar uma funcionalidade.
+7. A API segue o [Twelve-Factor App](https://12factor.net/pt_br/). O checklist por fator, com o cenário ou a fase que resolve cada lacuna, está em [`docs/twelve-factor.md`](../twelve-factor.md).
 
 ## Contrato
 
@@ -140,6 +141,8 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 **Status:** planejado (Fase 6, ambientes). Sem o tratamento de cabeçalhos encaminhados, todas as requisições chegam com o IP do Nginx: o limite de autenticação (10 por minuto) passaria a valer para todos os usuários juntos.
 
 `RateLimiting:Enabled` = `false` desliga os dois limites. Isso existe para os testes e nunca é usado em ambiente real.
+
+O estado dos limites fica **na memória de cada processo**, por decisão: a API roda com uma réplica só. Com mais de uma réplica, cada uma teria o próprio contador e o limite efetivo se multiplicaria. Subir uma segunda réplica exige rever esta decisão (exceção registrada no fator VI do `docs/twelve-factor.md`).
 
 ### Idempotência
 
@@ -286,6 +289,45 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *Então* sobe normalmente (`TRV-025`)
 **Status:** planejado (junto com `TRV-025`; issue #1). Hoje a trava derruba a API em `Production` mesmo com os pagamentos desligados, porque a chave ainda não existe. A trava olha o nome do ambiente de propósito: é a segunda barreira, para o caso de a chave ser ligada por engano em produção, e um gateway que fabrica aprovações confirmaria cobranças que nunca aconteceram.
 
+### Configuração e processos (Twelve-Factor)
+
+**TRV-034: Configuração só por variáveis de ambiente**
+*Dado* qualquer ambiente, inclusive o de desenvolvimento
+*Então* a API lê a configuração de `appsettings.json`, que só tem padrões seguros, iguais em todo ambiente, e de variáveis de ambiente, que prevalecem
+*E* não existe `appsettings.<Ambiente>.json` nem User Secrets
+*E* em desenvolvimento, um `.env` local fora do git, copiado do `.env.example`, fornece as variáveis ao compose de desenvolvimento e ao `dotnet run`
+**Status:** divergente: correção proposta para a Fase 4, junto com o compose de desenvolvimento
+**Hoje:** o `appsettings.Development.json` traz emissor, audiência e origem do CORS de desenvolvimento; o `TechCurse.Api.csproj` tem `UserSecretsId`; e o README e o `CLAUDE.md` orientam gravar connection strings e a chave de assinatura em User Secrets.
+
+**TRV-035: O primeiro Admin é criado por um processo administrativo avulso**
+*Dado* a imagem da release, em qualquer ambiente
+*Quando* o operador roda o comando avulso de criação de Admin, com o e-mail e a senha em variáveis de ambiente
+*Então* o Admin é criado, e o processo termina com código `0`
+*E* se já existe um usuário com esse e-mail, o comando não o altera, informa isso e termina com código `0`
+*E* se a senha não atende à política (`AUTH-004`), o comando termina com código diferente de `0` e diz o motivo
+*E* a senha nunca é aceita como argumento de linha de comando nem aparece em log
+**Status:** planejado (antes do primeiro deploy em produção; Fase 7). Hoje o único caminho é o seed de `Development` (`AUTH-038`), então uma produção nova não teria nenhum Admin para criar cursos e instrutores.
+
+**TRV-036: Encerramento limpo**
+*Quando* o processo recebe `SIGTERM`
+*Então* ele deixa de aceitar conexões novas, conclui as requisições em andamento em até 25 segundos e termina com código `0`
+*E* o orquestrador espera pelo menos 30 segundos antes de matar o processo
+**Status:** planejado (Fase 4). Hoje o ASP.NET Core já espera até 30 segundos pelas requisições em andamento, mas o `docker stop` mata o processo em 10 segundos, o padrão do Docker.
+
+**TRV-037: HTTP na porta configurada; TLS fica no proxy**
+*Então* a API atende HTTP na porta de `ASPNETCORE_HTTP_PORTS` (`8080` na imagem) e não redireciona para HTTPS
+*E* o esquema e o IP originais vêm de `X-Forwarded-Proto` e `X-Forwarded-For`, aceitos só do proxy reverso (`TRV-013`)
+**Status:** divergente: correção proposta para a Fase 6
+**Hoje:** `UseHttpsRedirection()` está no pipeline. Atrás do Nginx, que termina o TLS, a API não tem como saber que a conexão original era HTTPS.
+
+**TRV-038: Telemetria com OpenTelemetry**
+*Então* os logs estruturados vão sempre para o stdout, em JSON, um evento por linha
+*E* quando `OTEL_EXPORTER_OTLP_ENDPOINT` está configurado, a API exporta logs, traces e métricas via OTLP para esse endereço, com `service.name` = `tech-curse-api`, `service.version` = versão da release e o ambiente em `deployment.environment` (via `OTEL_RESOURCE_ATTRIBUTES`)
+*E* sem essa variável, nada é exportado e a API funciona normalmente
+*E* cada log emitido durante uma requisição traz o `TraceId` e o `SpanId` dela, para ir do log ao trace no Grafana
+*E* a API não conhece Loki, Tempo nem Mimir: o coletor OpenTelemetry decide o destino de cada sinal
+**Status:** planejado (Fase 8). Hoje só existe o log JSON no stdout (Serilog).
+
 ## Divergências
 
 | Cenário | Hoje | Proposta | Quando |
@@ -300,6 +342,11 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 | `TRV-025` | API não sobe em `Production`; pagamentos sempre registrados | `Payments:Enabled`, desligado por padrão | Antes do 1º deploy |
 | `TRV-026` | Swagger decidido pelos nomes de ambiente `Development` e `Homolog` | `Swagger:Enabled`, desligado por padrão | Fase 6 |
 | `TRV-033` | Trava derruba a API em `Production` mesmo sem pagamentos | Trava só quando `Payments:Enabled` = `true` com o gateway simulado | Antes do 1º deploy |
+| `TRV-034` | `appsettings.Development.json`, User Secrets | Só `appsettings.json` com padrões seguros e variáveis de ambiente; `.env` local em dev | Fase 4 |
+| `TRV-035` | Sem forma de criar o primeiro Admin fora de `Development` | Comando avulso na imagem da release | Antes do 1º deploy |
+| `TRV-036` | `docker stop` mata em 10 s; a API espera até 30 s | Encerrar em até 25 s; orquestrador espera 30 s | Fase 4 |
+| `TRV-037` | `UseHttpsRedirection()` atrás do proxy | HTTP puro; esquema e IP via `X-Forwarded-*` do proxy | Fase 6 |
+| `TRV-038` | Só log JSON no stdout | Logs também, mais traces e métricas, via OTLP quando configurado | Fase 8 |
 
 ## Fora de escopo
 
