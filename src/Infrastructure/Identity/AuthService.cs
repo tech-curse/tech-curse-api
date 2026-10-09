@@ -20,6 +20,10 @@ public class AuthService : IAuthService
 
     private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
 
+    private const int TamanhoMaximoDoNome = 100;
+
+    private static readonly HashSet<string> CodigosDeUserName = ["DuplicateUserName", "InvalidUserName"];
+
     private readonly UserManager<IdentityUser> _userManager;
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly ITokenService _tokenService;
@@ -61,12 +65,17 @@ public class AuthService : IAuthService
             });
         }
 
-        if (role == UserRole.Student && await _userManager.FindByEmailAsync(email) is null && await _studentRepository.EmailExistsAsync(email))
+        nome = nome?.Trim() ?? string.Empty;
+
+        if (nome.Length == 0 || nome.Length > TamanhoMaximoDoNome)
         {
-            throw new ConflictException("Já existe um perfil de estudante com este e-mail.");
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                { "Nome", new[] { nome.Length == 0 ? "O nome é obrigatório." : "O nome deve ter no máximo 100 caracteres." } }
+            });
         }
 
-        var user = new IdentityUser { UserName = nome, Email = email };
+        var user = new IdentityUser { UserName = email, Email = email };
 
         var result = await _userManager.CreateAsync(user, senha);
 
@@ -74,7 +83,7 @@ public class AuthService : IAuthService
         {
             var errorList = new Dictionary<string, string[]>();
 
-            foreach (var error in result.Errors)
+            foreach (var error in result.Errors.Where(e => !CodigosDeUserName.Contains(e.Code)))
             {
                 if (errorList.TryGetValue(error.Code, out var existingErrors))
                 {

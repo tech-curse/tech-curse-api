@@ -29,7 +29,6 @@ public class AuthController : ControllerBase
         Description = "**Acesso:** Público. O usuário é sempre criado com a role Student."
     )]
     [SwaggerResponse(StatusCodes.Status201Created, "Usuário registrado com sucesso.", typeof(MensagemOutputDto))]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "Conflito. Já existe um perfil de estudante com este e-mail.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status422UnprocessableEntity, "Erro de validação nos campos enviados.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Limite de requisições de autenticação excedido.", typeof(ProblemDetails))]
     public async Task<IActionResult> Register([FromBody] RegisterInputDto input)
@@ -48,7 +47,6 @@ public class AuthController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "Usuário criado com sucesso.", typeof(MensagemOutputDto))]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "Usuário não autenticado.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status403Forbidden, "Acesso negado.", typeof(ProblemDetails))]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "Conflito. Já existe um perfil de estudante com este e-mail.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status422UnprocessableEntity, "Erro de validação nos campos enviados.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Limite de requisições de autenticação excedido.", typeof(ProblemDetails))]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserInputDto input)

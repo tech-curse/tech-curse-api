@@ -70,10 +70,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 **Status:** implementado
 
 **AUTH-006: Perfil de estudante antigo sem usuário bloqueia o e-mail**
-*Dado* um perfil de estudante com um e-mail, sem usuário associado
-*Quando* alguém tenta registrar esse e-mail
-*Então* a resposta é `409`, com `detail` = `"Já existe um perfil de estudante com este e-mail."`
-**Status:** implementado
+**Status:** removido. A FK `Student.IdentityUserId` é obrigatória e apaga o perfil em cascata junto com o usuário, então um perfil sem usuário não pode existir no schema atual. O cenário só fazia sentido para dados do projeto anterior, que não existem neste repositório; o código que o tratava saiu.
 
 **AUTH-007: E-mail em formato inválido é recusado**
 *Quando* o e-mail não tem formato de e-mail
@@ -90,8 +87,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *Então* o registro é aceito
 *Quando* o nome está vazio ou passa de 100 caracteres
 *Então* a resposta é `422`, com as mesmas mensagens da edição de perfil (`ALU-012`)
-**Status:** divergente: correção proposta para a Fase 3, na API e no web
-**Hoje:** o nome vira o `UserName` do Identity, que só aceita `A-Z a-z 0-9 - . _ @ +` e precisa ser único. `"João da Silva"` recebe `422 InvalidUserName`, e um segundo `"Ana"` recebe `422 DuplicateUserName`. O web repete a restrição no formulário. Não há limite de tamanho no registro, então um nome de 150 caracteres é aceito e depois impede a edição do perfil.
+**Status:** implementado na API: o `UserName` do Identity é o e-mail, e o nome fica só no perfil de estudante. O formulário do web acompanha em `WEB-AUTH-007`.
 
 **AUTH-010: Falha ao criar o perfil desfaz a criação do usuário**
 *Dado* que a gravação do perfil de estudante falha
@@ -288,7 +284,6 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `AUTH-009` | Nome vira `UserName`: sem espaço, sem acento e único | O `UserName` passa a ser o e-mail; o nome fica livre no perfil de estudante. O web deixa de restringir o campo | Fase 3 (API e web) |
 | `AUTH-016` | Mensagens diferentes para e-mail inexistente e senha errada; Swagger documenta `400` | A mesma resposta `401` para os dois casos; Swagger corrigido | Fase 3 |
 | `AUTH-018` | Lockout configurado, mas nunca aplicado | Aplicar | Fase 5 |
 

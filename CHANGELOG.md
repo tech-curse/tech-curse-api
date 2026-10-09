@@ -20,6 +20,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- O nome do registro é livre: espaços, acentos e nomes repetidos são aceitos (ex.: `"João da Silva"`), com 1 a 100 caracteres. O `UserName` do Identity passa a ser o e-mail, e o nome fica só no perfil de estudante. Antes, o nome virava o `UserName`, que só aceita `A-Z a-z 0-9 - . _ @ +` e precisa ser único (`AUTH-009`).
 - Versão reiniciada em `1.0.0` no `Directory.Build.props`.
 - O Swagger passa a ler a versão do assembly, em vez de um `"2.0.0"` fixo no código.
 - README corrigido: o lockout do Identity está configurado, mas o login ainda não o aplica (`lockoutOnFailure: false`).
@@ -27,6 +28,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Removido
 
+- Resposta `409` para "perfil de estudante sem usuário" no registro: a FK obrigatória com cascata torna esse estado impossível (`AUTH-006`, removido).
 - `LICENSE`.
 - `docs/diagram.png`, desatualizado (mostrava SQL Server e Seq); o diagrama em Mermaid do README é a referência.
 - Histórico de versões do projeto anterior (1.x a 3.0.0) neste CHANGELOG.
