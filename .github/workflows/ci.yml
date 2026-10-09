@@ -39,6 +39,16 @@ jobs:
       - name: Formatação
         run: dotnet format TechCurse.slnx --verify-no-changes --no-restore
 
+      - name: Imagens de teste
+        run: |
+          for imagem in public.ecr.aws/docker/library/postgres:17 public.ecr.aws/docker/library/redis:7; do
+            for tentativa in 1 2 3; do
+              docker pull --quiet "$imagem" && break
+              [ "$tentativa" -eq 3 ] && exit 1
+              sleep $((tentativa * 10))
+            done
+          done
+
       - name: Testes
         run: dotnet test --solution TechCurse.slnx --configuration Release --no-build --results-directory TestResults --coverage --coverage-output-format cobertura
 
