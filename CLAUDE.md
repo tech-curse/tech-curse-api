@@ -21,6 +21,16 @@ O banco foi SQL Server até setembro de 2026. A troca foi de schema, não de dad
 
 A collection do Postman fica em `docs/`. O diagrama de arquitetura vive no README, em Mermaid, para não envelhecer separado do texto.
 
+### Twelve-Factor
+
+A API segue o [Twelve-Factor App](https://12factor.net/pt_br/); o checklist por fator está em [`docs/twelve-factor.md`](docs/twelve-factor.md). Regras práticas ao implementar:
+
+- **Configuração nova** entra como chave em `appsettings.json` com o padrão seguro (funcionalidade desligada, valor que vale em qualquer ambiente) e, se precisar de valor por ambiente, no `.env.example` como variável sem valor. Nada de `appsettings.<Ambiente>.json` nem User Secrets; a API nunca lê `.env` (quem inicia o processo o carrega). Estrutura completa em [`docs/configuracao.md`](docs/configuracao.md); o que ainda existe sai na Fase 3 (`TRV-034`).
+- **Nunca use `IsDevelopment()`, `IsProduction()` ou `IsEnvironment()` para ligar ou desligar funcionalidade.** O nome do ambiente só aparece em travas de segurança, como segunda barreira (`TRV-033`, `AUTH-038`).
+- **Estado fica fora do processo**: PostgreSQL ou Redis. A única exceção aceita é o rate limiting em memória, enquanto houver uma réplica.
+- **Logs só no stdout**, via `ILogger`/Serilog. Nunca escreva arquivo de log nem envie logs por conta própria; a exportação é do OpenTelemetry, configurado por variáveis `OTEL_*` (`TRV-038`).
+- **Tarefa administrativa** (migration, criação de Admin, correção de dados) é um comando avulso que roda com a mesma imagem e a mesma configuração da release, nunca código no startup (`TRV-024`, `TRV-035`).
+
 ## Comandos
 
 Todos executados na raiz do repositório. A solution é `TechCurse.slnx` (formato slnx, não `.sln`). Versões de pacote são gerenciadas centralmente em `Directory.Packages.props` (Central Package Management) — os `.csproj` só declaram `<PackageReference Include="..." />` sem `Version`; propriedades comuns (`TargetFramework`, `Nullable`, `ImplicitUsings`, `VersionPrefix`, etc.) vêm de `Directory.Build.props` na raiz.
