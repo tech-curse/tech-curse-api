@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using TechCurse.Api.IntegrationTests.Infraestrutura;
 
 namespace TechCurse.Api.IntegrationTests.Transversais;
@@ -12,7 +14,7 @@ public sealed partial class ConfiguracaoTests(AmbienteDeTeste ambiente) : TesteD
     private const string ArquivosDoWebApplicationFactory = "TechCurse.Api.settings";
 
     private static readonly string[] Segredos =
-        ["ConnectionStrings__APITechCurse", "ConnectionStrings__RedisCache", "Jwt__SigningKey", "Seed__Admin__Email", "Seed__Admin__Password"];
+        ["ConnectionStrings__APITechCurse", "ConnectionStrings__RedisCache", "Jwt__SigningKey", "Seed__Admin__Email", "Seed__Admin__Password", "POSTGRES_PASSWORD"];
 
     [GeneratedRegex("\"(?<chave>[A-Z][A-Za-z]+(:[A-Z][A-Za-z]+)+)\"|GetConnectionString\\(\"(?<conexao>[A-Za-z]+)\"\\)")]
     private static partial Regex LeituraDeConfiguracao();
@@ -89,5 +91,16 @@ public sealed partial class ConfiguracaoTests(AmbienteDeTeste ambiente) : TesteD
         Assert.Contains("Jwt__SigningKey", lidas);
         Assert.All(lidas, chave => Assert.True(exemplo.ContainsKey(chave), $"{chave} falta no .env.example"));
         Assert.All(Segredos, segredo => Assert.Equal("", exemplo[segredo]));
+    }
+
+    [Fact]
+    [Trait("Especificacao", "TRV-036")]
+    public void Requisicoes_em_andamento_tem_ate_25_segundos_e_o_compose_espera_30()
+    {
+        var opcoes = Ambiente.Fabrica.Services.GetRequiredService<IOptions<HostOptions>>().Value;
+        var compose = File.ReadAllText(Path.Combine(Raiz(), "compose.yaml"));
+
+        Assert.Equal(TimeSpan.FromSeconds(25), opcoes.ShutdownTimeout);
+        Assert.Contains("stop_grace_period: 30s", compose, StringComparison.Ordinal);
     }
 }

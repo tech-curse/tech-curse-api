@@ -18,7 +18,7 @@ Em variáveis de ambiente, o separador de seção é `__`: `Jwt__SigningKey` cor
 | --- | --- | --- |
 | Padrão de política: igual em todo ambiente | `Logging:*`, `RateLimiting:*`, `Jwt:RefreshTokenDays` e, quando existirem, `Payments:Enabled` e `Swagger:Enabled` com valor `false` | `appsettings.json` (versionado) |
 | Varia por ambiente, não secreto | `ASPNETCORE_ENVIRONMENT`, `Jwt__Issuer`, `Jwt__Audience`, `Cors__AllowedOrigins` e, quando existirem, `Payments__Enabled`, `Swagger__Enabled`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_RESOURCE_ATTRIBUTES` | Variável de ambiente; no `.env.example` **com** um valor de exemplo de desenvolvimento |
-| Segredo | `ConnectionStrings__APITechCurse`, `ConnectionStrings__RedisCache`, `Jwt__SigningKey`, `Seed__Admin__Email`, `Seed__Admin__Password` e as credenciais do comando de criação do primeiro Admin (`TRV-035`) | Variável de ambiente; no `.env.example` **sem** valor |
+| Segredo | `ConnectionStrings__APITechCurse`, `ConnectionStrings__RedisCache`, `Jwt__SigningKey`, `Seed__Admin__Email`, `Seed__Admin__Password`, `POSTGRES_PASSWORD` (do contêiner do PostgreSQL, no compose) e as credenciais do comando de criação do primeiro Admin (`TRV-035`) | Variável de ambiente; no `.env.example` **sem** valor |
 
 Uma chave nova entra no `appsettings.json` se tiver um padrão seguro, e sempre no `.env.example`. **Toda chave que a API lê está no `.env.example`**, para quem configura um ambiente novo ter a lista completa num lugar só.
 
@@ -27,7 +27,7 @@ Uma chave nova entra no `appsettings.json` se tiver um padrão seguro, e sempre 
 | Contexto | Fonte das variáveis | Segredos reais? |
 | --- | --- | --- |
 | **Desenvolvimento, API no host** (`dotnet run`, debug na IDE, `dotnet ef`) | `.env` local, carregado pela run configuration da IDE (Rider e VS Code aceitam arquivo de ambiente) ou pelo script `scripts/com-env` | Não: valores descartáveis da sua máquina |
-| **Desenvolvimento, tudo em contêiner** | O mesmo `.env`, lido pelo compose de desenvolvimento (Fase 4) | Não |
+| **Desenvolvimento, tudo em contêiner** | O mesmo `.env`, passado à API pelo `env_file` do `compose.yaml`. O compose sobrescreve só as connection strings, montadas com `POSTGRES_USER` e `POSTGRES_PASSWORD` e os nomes dos serviços (`postgres`, `redis`) | Não |
 | **Testes de integração** | A factory dos testes injeta a configuração em memória, com as connection strings dos contêineres do Testcontainers. Nenhum `.env` | Não |
 | **CI** | Variáveis declaradas no workflow; valores sensíveis, como a chave do JWT dos testes end-to-end, são gerados no próprio job | Não: o CI não usa segredo da aplicação |
 | **Staging e produção** | Um `.env` por ambiente na VPS, fora do git, com permissão `600` e dono o usuário de deploy, passado aos contêineres pelo `env_file` do compose | **Sim, e só aqui** |

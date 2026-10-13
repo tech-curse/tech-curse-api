@@ -75,7 +75,7 @@ Versões de pacote centralizadas em [`Directory.Packages.props`](Directory.Packa
 
 ## Como executar
 
-Pré-requisitos: [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), PostgreSQL 17 e Redis.
+Pré-requisitos: [Docker](https://docs.docker.com/get-docker/) com Compose. Para rodar a API fora do contêiner, também o [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```bash
 git clone https://github.com/tech-curse/tech-curse-api.git
@@ -88,7 +88,23 @@ A API lê a configuração de variáveis de ambiente; nenhuma credencial é vers
 cp .env.example .env
 ```
 
-Preencha no `.env` as connection strings do seu PostgreSQL e do seu Redis e uma chave de assinatura gerada na hora (`openssl rand -base64 48`), no campo `Jwt__SigningKey`. Depois rode a API com o script, que carrega o `.env` e executa `dotnet run --project src/Api`:
+Preencha no `.env` a senha do PostgreSQL (`POSTGRES_PASSWORD`) e uma chave de assinatura gerada na hora (`openssl rand -base64 48`), no campo `Jwt__SigningKey`.
+
+**Tudo em contêiner** (PostgreSQL 17, Redis 7 e a API, com o `compose.yaml` da raiz):
+
+```bash
+docker compose up --build
+```
+
+O compose monta as connection strings da API a partir do `POSTGRES_USER` e do `POSTGRES_PASSWORD`; as portas ficam só em `127.0.0.1`. Para conferir a imagem como o CI confere (usuário não root, health checks, login e encerramento limpo), com o compose no ar: `./scripts/verificar-conteiner.sh`.
+
+**API no host, com debug** (só PostgreSQL e Redis no contêiner):
+
+```bash
+docker compose up postgres redis
+```
+
+Preencha no `.env` as connection strings apontando para `localhost`, com o mesmo usuário e a mesma senha, e rode a API com o script, que carrega o `.env` e executa `dotnet run --project src/Api`:
 
 ```bash
 ./scripts/com-env.sh

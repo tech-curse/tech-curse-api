@@ -61,3 +61,59 @@ jobs:
       - name: Rastreabilidade
         if: ${{ !cancelled() }}
         run: python3 scripts/rastreabilidade.py --estrito >> "$GITHUB_STEP_SUMMARY"
+
+  imagem:
+    name: imagem
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      API_IMAGE: tech-curse-api:ci
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build da imagem
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: ${{ env.API_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: .env descartável
+        run: |
+          senha_banco=$(openssl rand -hex 24)
+          chave_jwt=$(openssl rand -base64 48 | tr -d '\n')
+          senha_admin="Aa1!$(openssl rand -hex 12)"
+          echo "::add-mask::$senha_banco"
+          echo "::add-mask::$chave_jwt"
+          echo "::add-mask::$senha_admin"
+          sed -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$senha_banco|" \
+              -e "s|^Jwt__SigningKey=.*|Jwt__SigningKey=$chave_jwt|" \
+              -e "s|^Seed__Admin__Email=.*|Seed__Admin__Email=admin@ci.test|" \
+              -e "s|^Seed__Admin__Password=.*|Seed__Admin__Password=$senha_admin|" \
+              .env.example > .env
+
+      - name: Imagens de apoio
+        run: |
+          for tentativa in 1 2 3; do
+            docker compose pull --quiet postgres redis && break
+            [ "$tentativa" -eq 3 ] && exit 1
+            sleep $((tentativa * 10))
+          done
+
+      - name: Subir o compose
+        run: docker compose up --detach --no-build --wait --wait-timeout 180
+
+      - name: Verificar o contêiner
+        run: scripts/verificar-conteiner.sh
+
+      - name: Logs
+        if: ${{ failure() }}
+        run: docker compose logs --no-color
+
+      - name: Derrubar o compose
+        if: ${{ always() }}
+        run: docker compose down --volumes

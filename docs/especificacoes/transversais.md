@@ -293,7 +293,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *E* a API não lê nenhum arquivo `.env`: quem inicia o processo (IDE, script, compose, workflow do CI) transforma o `.env` em variáveis de ambiente
 *E* toda chave que a API lê está no `.env.example`: os segredos sem valor; o resto com um valor de exemplo de desenvolvimento
 *E* a estrutura completa (o que mora onde, em cada contexto) está em [`docs/configuracao.md`](../configuracao.md)
-**Status:** implementado. O compose de desenvolvimento (Fase 4) lerá o mesmo `.env`.
+**Status:** implementado. O compose de desenvolvimento lê o mesmo `.env`.
 
 **TRV-039: Segredos da aplicação existem só no ambiente que os usa**
 *Então* os segredos de staging e de produção ficam apenas no `.env` de cada ambiente na VPS (fora do git, permissão `600`, dono o usuário de deploy)
@@ -315,7 +315,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *Quando* o processo recebe `SIGTERM`
 *Então* ele deixa de aceitar conexões novas, conclui as requisições em andamento em até 25 segundos e termina com código `0`
 *E* o orquestrador espera pelo menos 30 segundos antes de matar o processo
-**Status:** planejado (Fase 4). Hoje o ASP.NET Core já espera até 30 segundos pelas requisições em andamento, mas o `docker stop` mata o processo em 10 segundos, o padrão do Docker.
+**Status:** implementado. A espera fica em `HostOptions.ShutdownTimeout` (`EncerramentoSetup`), e o `stop_grace_period` do compose é de 30 segundos; o padrão do Docker, 10 segundos, mataria o processo antes.
 
 **TRV-037: HTTP na porta configurada; TLS fica no proxy**
 *Então* a API atende HTTP na porta de `ASPNETCORE_HTTP_PORTS` (`8080` na imagem) e não redireciona para HTTPS
@@ -342,7 +342,6 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 | `TRV-033` | Trava derruba a API em `Production` mesmo sem pagamentos | Trava só quando `Payments:Enabled` = `true` com o gateway simulado | Antes do 1º deploy |
 | `TRV-039` | Segredos ainda sem lugar definido fora do desenvolvimento | Só no `.env` de cada ambiente na VPS; pipeline e CI sem segredos da aplicação | Fases 6 e 7 |
 | `TRV-035` | Sem forma de criar o primeiro Admin fora de `Development` | Comando avulso na imagem da release | Antes do 1º deploy |
-| `TRV-036` | `docker stop` mata em 10 s; a API espera até 30 s | Encerrar em até 25 s; orquestrador espera 30 s | Fase 4 |
 | `TRV-037` | `UseHttpsRedirection()` atrás do proxy | HTTP puro; esquema e IP via `X-Forwarded-*` do proxy | Fase 6 |
 | `TRV-038` | Só log JSON no stdout | Logs também, mais traces e métricas, via OTLP quando configurado | Fase 8 |
 

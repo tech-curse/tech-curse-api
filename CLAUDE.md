@@ -74,6 +74,8 @@ Quatro projetos em `src/`, no estilo do template `dotnet new ca-sln` (pasta com 
 | `src/Infrastructure/` | `TechCurse.Infrastructure.csproj` | `TechCurse.Infrastructure` |
 | `src/Api/` | `TechCurse.Api.csproj` | `TechCurse.Api` |
 
+Fora das camadas, `src/Sonda/` (`TechCurse.Sonda`) é o console que serve de healthcheck da imagem; ver "Imagem e entrega".
+
 - **Domain** — entidades, enums, exceções de domínio e `ISpecification<T>`. Zero dependências de outras camadas e nenhuma referência a EF Core ou ASP.NET MVC.
 - **Application** — CQRS por Vertical Slices em `Features/<Recurso>/{Commands,Queries}/<Operacao>/`, cada pasta com `Command`/`Query` + `Handler` + `Validator`. Também abriga DTOs, `Interfaces/` (contratos de repositório, cache, gateway, usuário atual), a factory e as strategies de pagamento. Depende apenas de Domain.
 - **Infrastructure** — `TechCurseContext`, repositórios, Redis, Identity/JWT e o adaptador de gateway de pagamento. Depende de Application (implementa suas interfaces).
@@ -154,24 +156,33 @@ Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, qu
 
 ## Imagem e entrega
 
-**Não há imagem, compose nem pipeline de entrega desde a importação do repositório** — `Dockerfile`, `.dockerignore`, `docker-compose*.yml` e o antigo `ci-cd.yml` foram removidos para serem refeitos. Nenhuma imagem é publicada a partir deste repositório ainda.
+**Imagem** (`Dockerfile` na raiz): build multi-stage com o SDK `10.0.401-noble` (a versão do `global.json`) e runtime `aspnet:10.0.12-noble-chiseled-extra`, sem shell nem gerenciador de pacotes, com usuário não root (`app`, UID 1654) e porta `8080`. As versões das imagens base são exatas, e o Dependabot as acompanha. O restore roda numa camada própria, só com os `.csproj`, para o cache do Docker reaproveitá-la enquanto as dependências não mudam.
 
-O CI existe: `.github/workflows/ci.yml`, em todo PR e em todo push na `main`, com restore, build Release com `TreatWarningsAsErrors`, `dotnet format --verify-no-changes` e `dotnet test`. O job se chama `ci`, e esse é o nome do check obrigatório na proteção da `main`; renomear o job quebra a proteção.
+**Healthcheck sem shell:** a imagem chiseled não tem `curl` nem `wget`, então o `HEALTHCHECK`, na forma exec, chama `dotnet /app/TechCurse.Sonda.dll`. A sonda (`src/Sonda`) é um console .NET mínimo que faz `GET /health/ready` e sai com `0` ou `1`. Custa a partida de um runtime a cada 30 s (~0,1 s); em troca, a imagem continua sem shell. Ela não referencia nenhum outro projeto, e assim deve ficar.
 
-`InvariantGlobalization` continua `false` no `Directory.Build.props` por herança: o `Microsoft.Data.SqlClient` exigia ICU, e a imagem anterior usava a variante `chiseled-extra` por isso. O Npgsql em princípio não depende do ICU, mas isso nunca foi validado. Se a nova imagem usar um runtime sem ICU, mexa nas duas coisas juntas e valide o `Migrate()` e o health check.
+**ICU:** `InvariantGlobalization` é `false` no `Directory.Build.props`, e a variante `chiseled-extra` é a que traz a ICU. Trocar para a chiseled comum exige ligar a globalização invariante e validar o `Migrate()`, o health check e textos com acento.
+
+**Compose de desenvolvimento** (`compose.yaml`): PostgreSQL 17 e Redis 7 do ECR Public (as mesmas imagens dos testes) e a API, com as portas só em `127.0.0.1` (`5432`, `6379`, `5130`). A API recebe o `.env` por `env_file`, e o compose sobrescreve só as connection strings, montadas com `POSTGRES_USER`/`POSTGRES_PASSWORD` e o nome dos serviços. `stop_grace_period: 30s` acompanha o `EncerramentoSetup.TempoMaximo` de 25 s (`TRV-036`): o processo precisa terminar sozinho antes de o Docker mandar o `SIGKILL`.
+
+O CI (`.github/workflows/ci.yml`) roda em todo PR e em todo push na `main`, com dois jobs:
+
+- `ci`: restore, build Release com `TreatWarningsAsErrors`, `dotnet format --verify-no-changes`, testes com cobertura e rastreabilidade estrita. É o check obrigatório na proteção da `main`; renomear o job quebra a proteção.
+- `imagem`: constrói a imagem (cache do Buildx no GitHub Actions), gera um `.env` descartável, sobe o compose com `--wait` e roda `scripts/verificar-conteiner.sh` (usuário não root, liveness, readiness, login do Admin do seed e encerramento com código `0` em menos de 30 s). Roda igual na máquina local, com o compose no ar.
+
+Nenhuma imagem é publicada a partir deste repositório ainda.
 
 O que a entrega anterior ensinou:
 
 - **Healthcheck do Postgres precisa de `pg_isready -h localhost`.** Sem `-h`, a sonda consulta o socket Unix do servidor temporário do `initdb` e responde pronto antes do servidor definitivo aceitar TCP.
-- **Publish com `--no-restore` quebra com cache de camadas.** O passo de restore pode vir pronto do cache num runner novo, com o cache mount de NuGet vazio, e o publish falha com `NETSDK1064`. Com `PublishReadyToRun=true`, o RID (`--use-current-runtime`) precisa estar no restore e no publish, mais `--no-self-contained` no publish.
+- **Publish com `--no-restore` quebra com cache de camadas.** O passo de restore pode vir pronto do cache num runner novo, com o cache mount de NuGet vazio, e o publish falha com `NETSDK1064`. Por isso o `Dockerfile` não usa cache mount no restore: os pacotes ficam na própria camada. Com `PublishReadyToRun=true`, o RID (`--use-current-runtime`) precisa estar no restore e no publish, mais `--no-self-contained` no publish.
 - **`.dockerignore` casa a partir da raiz do contexto**: mover um arquivo pode fazer um padrão deixar de pegá-lo.
-- **Imagem chiseled não tem shell**: não comporta `HEALTHCHECK` interno nem `depends_on: service_healthy` para a API; a sondagem tem que ser externa.
+- **Imagem chiseled não tem shell**: `HEALTHCHECK` na forma shell (`CMD curl ...`) não funciona. A saída adotada é a forma exec com a sonda própria, descrita acima.
 - **O GHCR exige nome de imagem em minúsculas**. As imagens deste repositório vão para `ghcr.io/tech-curse/tech-curse-api`, sempre com tag imutável (versão ou SHA), nunca `latest` em produção.
 - **Smoke test antes do push**: construir com `load: true`, subir, sondar `/health/ready` e só então fazer login e `docker push` dos mesmos bits.
 
 ## Versionamento
 
-O projeto segue [Semantic Versioning 2.0.0](https://semver.org/lang/pt-BR/). A versão é declarada **em um único lugar**, `<VersionPrefix>` no `Directory.Build.props`, e propaga para os quatro projetos de `src/`. O `OpenApiInfo.Version` do Swagger acompanha; o nome do documento continua `"v1"` porque compõe a URL `/swagger/v1/swagger.json`.
+O projeto segue [Semantic Versioning 2.0.0](https://semver.org/lang/pt-BR/). A versão é declarada **em um único lugar**, `<VersionPrefix>` no `Directory.Build.props`, e propaga para todos os projetos de `src/`. O `OpenApiInfo.Version` do Swagger acompanha; o nome do documento continua `"v1"` porque compõe a URL `/swagger/v1/swagger.json`.
 
 Publicar uma versão:
 
