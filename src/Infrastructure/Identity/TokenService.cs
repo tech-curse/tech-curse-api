@@ -7,7 +7,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using TechCurse.Application.DTOs;
 using TechCurse.Application.Interfaces;
-using TechCurse.Domain.Exceptions;
 
 namespace TechCurse.Infrastructure.Identity;
 
@@ -17,7 +16,7 @@ public class TokenService : ITokenService
 
     private const int DiasDeValidadeDoRefreshTokenPadrao = 7;
 
-    private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
+    private const int MinutosDeValidadeDoAccessTokenPadrao = 15;
 
     private readonly IConfiguration _configuration;
 
@@ -41,7 +40,8 @@ public class TokenService : ITokenService
             claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
-        var expiresAt = DateTime.UtcNow.AddHours(2);
+        var expiresAt = DateTime.UtcNow.AddMinutes(
+            _configuration.GetValue("Jwt:AccessTokenMinutes", MinutosDeValidadeDoAccessTokenPadrao));
 
         var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SigningKey"]!);
         var credential = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature);
@@ -77,42 +77,5 @@ public class TokenService : ITokenService
         var dias = _configuration.GetValue("Jwt:RefreshTokenDays", DiasDeValidadeDoRefreshTokenPadrao);
 
         return DateTime.UtcNow.AddDays(dias);
-    }
-
-    public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
-    {
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:SigningKey"]!);
-
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateLifetime = false,
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = _configuration["Jwt:Issuer"],
-            ValidAudience = _configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(key)
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        ClaimsPrincipal principal;
-        SecurityToken securityToken;
-
-        try
-        {
-            principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
-        }
-        catch (Exception erro) when (erro is SecurityTokenException or ArgumentException)
-        {
-            throw new UnauthorizedException(MensagemDeRefreshInvalido);
-        }
-
-        if (securityToken is not JwtSecurityToken jwtSecurityToken ||
-            !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-        {
-            throw new UnauthorizedException(MensagemDeRefreshInvalido);
-        }
-
-        return principal;
     }
 }

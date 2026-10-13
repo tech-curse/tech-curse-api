@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Tech Curse API",
-    "description": "Collection da Tech Curse API.\n\nAutenticacao: rode Auth > Login. O script de teste grava accessToken e refreshToken nas variaveis da collection, e as demais requisicoes usam o accessToken automaticamente via Bearer.\n\nO baseUrl padrão, http://localhost:5130, corresponde ao \"dotnet run\"; ajuste conforme o ambiente.",
+    "description": "Collection da Tech Curse API.\n\nAutenticacao: rode Auth > Login. O script de teste grava o accessToken nas variaveis da collection (o refresh token fica no cookie da sessao, guardado pelo Postman), e as demais requisicoes usam o accessToken automaticamente via Bearer.\n\nO baseUrl padrão, http://localhost:5130, corresponde ao \"dotnet run\"; ajuste conforme o ambiente.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_postman_id": "a18d56df-42b3-4881-8698-dbfa4aefbb25"
   },
@@ -65,9 +65,6 @@
                   "const corpo = pm.response.json();",
                   "if (corpo.accessToken) {",
                   "    pm.collectionVariables.set(\"accessToken\", corpo.accessToken);",
-                  "}",
-                  "if (corpo.refreshToken) {",
-                  "    pm.collectionVariables.set(\"refreshToken\", corpo.refreshToken);",
                   "}"
                 ]
               }
@@ -129,7 +126,7 @@
                 "login"
               ]
             },
-            "description": "Grava accessToken e refreshToken nas variaveis da collection.",
+            "description": "Grava o accessToken nas variaveis da collection; o refresh token fica no cookie da sessao.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"aluno@techcurse.com\",\n  \"password\": \"SenhaForte1!\"\n}",
@@ -153,9 +150,6 @@
                   "const corpo = pm.response.json();",
                   "if (corpo.accessToken) {",
                   "    pm.collectionVariables.set(\"accessToken\", corpo.accessToken);",
-                  "}",
-                  "if (corpo.refreshToken) {",
-                  "    pm.collectionVariables.set(\"refreshToken\", corpo.refreshToken);",
                   "}"
                 ]
               }
@@ -184,15 +178,6 @@
               ]
             },
             "description": "O refresh token e rotacionado a cada uso e vale 7 dias.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"accessToken\": \"{{accessToken}}\",\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "auth": {
               "type": "noauth"
             }
@@ -207,14 +192,12 @@
                   "const corpo = pm.response.json();",
                   "if (corpo.accessToken) {",
                   "    pm.collectionVariables.set(\"accessToken\", corpo.accessToken);",
-                  "}",
-                  "if (corpo.refreshToken) {",
-                  "    pm.collectionVariables.set(\"refreshToken\", corpo.refreshToken);",
                   "}"
                 ]
               }
             }
-          ]
+          ],
+          "description": "O refresh token vai no cookie da sessão, que o Postman guarda sozinho depois do login. Ele é rotacionado a cada uso e vale 7 dias."
         }
       ]
     },
@@ -918,11 +901,6 @@
     },
     {
       "key": "accessToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "refreshToken",
       "value": "",
       "type": "string"
     },

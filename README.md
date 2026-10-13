@@ -163,6 +163,7 @@ A configuração vem de variáveis de ambiente; o `appsettings.json` só traz pa
 | `ConnectionStrings:RedisCache` | Endereço do Redis |
 | `Jwt:Issuer`, `Jwt:Audience` | Emissor e audiência do token |
 | `Jwt:SigningKey` | Chave de assinatura, mínimo de 32 caracteres. Gere com `openssl rand -base64 48` |
+| `Jwt:AccessTokenMinutes` | Validade do access token (padrão `15`) |
 | `Jwt:RefreshTokenDays` | Validade do refresh token (padrão `7`) |
 | `Cors:AllowedOrigins` | Origens permitidas, separadas por vírgula. Vazio desliga o CORS |
 | `RateLimiting:Enabled` | Liga o rate limiting (padrão `true`) |

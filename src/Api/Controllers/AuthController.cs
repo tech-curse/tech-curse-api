@@ -5,6 +5,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using TechCurse.Api.Configuration;
 using TechCurse.Application.DTOs;
 using TechCurse.Application.Interfaces;
+using TechCurse.Domain.Exceptions;
 
 namespace TechCurse.Api.Controllers;
 
@@ -58,45 +59,62 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [SwaggerOperation(
-        Summary = "Realiza o login de um usuário e retorna o Token JWT.",
-        Description = "**Acesso:** Público."
+        Summary = "Realiza o login, devolve o access token e grava o refresh token num cookie HttpOnly.",
+        Description = "**Acesso:** Público. O refresh token vai no cookie `__Secure-tech-curse-sessao` (HttpOnly, Secure, SameSite=Strict, Path=/tech-curse/Auth), nunca no corpo."
     )]
     [SwaggerResponse(StatusCodes.Status200OK, "Autenticação bem-sucedida. Retorna o Token JWT.", typeof(AuthOutputDto))]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "E-mail ou senha incorretos, ou conta bloqueada.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Limite de tentativas de login excedido.", typeof(ProblemDetails))]
     public async Task<IActionResult> Login([FromBody] LoginInputDto input)
     {
-        var authResult = await _authService.LoginAsync(input);
+        var sessao = await _authService.LoginAsync(input);
+        GravarCookieDaSessao(sessao);
 
-        return Ok(authResult);
+        return Ok(new AuthOutputDto(sessao.AccessToken, sessao.ExpiresAt));
     }
 
     [HttpPost("refresh")]
     [SwaggerOperation(
-        Summary = "Gera um novo Token JWT a partir de um Refresh Token válido.",
-        Description = "**Acesso:** Público."
+        Summary = "Troca o refresh token do cookie por um novo access token e um novo cookie.",
+        Description = "**Acesso:** Público. Lê o refresh token do cookie `__Secure-tech-curse-sessao`; sem corpo."
     )]
     [SwaggerResponse(StatusCodes.Status200OK, "Token atualizado com sucesso.", typeof(AuthOutputDto))]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "Refresh token expirado ou inválido.", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Limite de requisições de autenticação excedido.", typeof(ProblemDetails))]
-    public async Task<IActionResult> Refresh([FromBody] RefreshTokenInputDto input)
+    public async Task<IActionResult> Refresh()
     {
-        var refreshResult = await _authService.RefreshAsync(input);
+        try
+        {
+            var sessao = await _authService.RefreshAsync(Request.Cookies[CookieDaSessao.Nome]);
+            GravarCookieDaSessao(sessao);
 
-        return Ok(refreshResult);
+            return Ok(new AuthOutputDto(sessao.AccessToken, sessao.ExpiresAt));
+        }
+        catch (UnauthorizedException)
+        {
+            ApagarCookieDaSessao();
+            throw;
+        }
     }
 
     [HttpPost("logout")]
     [SwaggerOperation(
-        Summary = "Encerra a sessão do refresh token informado.",
-        Description = "**Acesso:** Público. Responde 204 mesmo para um token desconhecido, para não revelar se ele existe."
+        Summary = "Encerra a sessão do refresh token do cookie e apaga o cookie.",
+        Description = "**Acesso:** Público. Responde 204 mesmo sem cookie ou com um token desconhecido, para não revelar se ele existe."
     )]
     [SwaggerResponse(StatusCodes.Status204NoContent, "Sessão encerrada.")]
     [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Limite de requisições de autenticação excedido.", typeof(ProblemDetails))]
-    public async Task<IActionResult> Logout([FromBody] LogoutInputDto input)
+    public async Task<IActionResult> Logout()
     {
-        await _authService.LogoutAsync(input.RefreshToken);
+        await _authService.LogoutAsync(Request.Cookies[CookieDaSessao.Nome]);
+        ApagarCookieDaSessao();
 
         return NoContent();
     }
+
+    private void GravarCookieDaSessao(SessaoEmitidaDto sessao) =>
+        Response.Cookies.Append(CookieDaSessao.Nome, sessao.RefreshToken, CookieDaSessao.Opcoes(sessao.RefreshTokenExpiraEm));
+
+    private void ApagarCookieDaSessao() =>
+        Response.Cookies.Delete(CookieDaSessao.Nome, CookieDaSessao.Opcoes(null));
 }

@@ -25,7 +25,7 @@ public sealed class LoginTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(amb
 
     [Fact]
     [Trait("Especificacao", "AUTH-014")]
-    public async Task Credenciais_validas_devolvem_um_par_de_tokens_que_vale_2_horas()
+    public async Task Credenciais_validas_devolvem_um_access_token_de_15_minutos_e_o_cookie_da_sessao()
     {
         var email = NovoEmail();
         await RegistrarEEntrarAsync(email);
@@ -36,9 +36,9 @@ public sealed class LoginTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(amb
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>(Cancelamento);
         Assert.False(string.IsNullOrEmpty(corpo.GetProperty("accessToken").GetString()));
-        Assert.False(string.IsNullOrEmpty(corpo.GetProperty("refreshToken").GetString()));
+        Assert.False(string.IsNullOrEmpty(ValorDoCookieDeSessao(resposta)));
         var expiraEm = corpo.GetProperty("expiresAt").GetDateTime().ToUniversalTime();
-        Assert.InRange(expiraEm, antes.AddHours(2).AddSeconds(-5), DateTime.UtcNow.AddHours(2).AddSeconds(5));
+        Assert.InRange(expiraEm, antes.AddMinutes(15).AddSeconds(-5), DateTime.UtcNow.AddMinutes(15).AddSeconds(5));
     }
 
     [Fact]

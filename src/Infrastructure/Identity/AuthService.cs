@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -151,7 +150,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthOutputDto?> LoginAsync(LoginInputDto input)
+    public async Task<SessaoEmitidaDto> LoginAsync(LoginInputDto input)
     {
         var user = await _userManager.FindByEmailAsync(input.Email);
         if (user == null)
@@ -168,24 +167,25 @@ public class AuthService : IAuthService
         var roles = await _userManager.GetRolesAsync(user);
 
         var tokenProcess = _tokenService.GenerateJwtToken(user, roles);
-        var refreshToken = await AbrirSessaoAsync(user.Id);
+        var (refreshToken, refreshTokenExpiraEm) = await AbrirSessaoAsync(user.Id);
 
-        return new AuthOutputDto(tokenProcess.AccessToken, refreshToken, tokenProcess.ExpiresAt);
+        return new SessaoEmitidaDto(tokenProcess.AccessToken, tokenProcess.ExpiresAt, refreshToken, refreshTokenExpiraEm);
     }
 
-    public async Task<AuthOutputDto?> RefreshAsync(RefreshTokenInputDto input)
+    public async Task<SessaoEmitidaDto> RefreshAsync(string? refreshToken)
     {
-        var principal = _tokenService.GetPrincipalFromExpiredToken(input.AccessToken);
-        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? throw new UnauthorizedException(MensagemDeRefreshInvalido);
+        if (string.IsNullOrEmpty(refreshToken))
+            throw new UnauthorizedException(MensagemDeRefreshInvalido);
 
-        var hash = _tokenService.HashRefreshToken(input.RefreshToken);
+        var hash = _tokenService.HashRefreshToken(refreshToken);
         var token = await _context.RefreshTokensDeSessao
             .Include(t => t.Sessao)
             .SingleOrDefaultAsync(t => t.Hash == hash);
 
-        if (token is null || token.Sessao.UsuarioId != userId || token.Sessao.RevogadaEm is not null)
+        if (token is null || token.Sessao.RevogadaEm is not null)
             throw new UnauthorizedException(MensagemDeRefreshInvalido);
+
+        var userId = token.Sessao.UsuarioId;
 
         if (token.UsadoEm is not null)
             await RevogarSessaoENegarAsync(token.SessaoId, MotivoDaRevogacao.Reuso);
@@ -216,12 +216,12 @@ public class AuthService : IAuthService
 
         var roles = await _userManager.GetRolesAsync(user);
         var tokenProcess = _tokenService.GenerateJwtToken(user, roles);
-        var refreshToken = await EmitirRefreshTokenAsync(token.SessaoId);
+        var (novoRefreshToken, novoRefreshTokenExpiraEm) = await EmitirRefreshTokenAsync(token.SessaoId);
 
-        return new AuthOutputDto(tokenProcess.AccessToken, refreshToken, tokenProcess.ExpiresAt);
+        return new SessaoEmitidaDto(tokenProcess.AccessToken, tokenProcess.ExpiresAt, novoRefreshToken, novoRefreshTokenExpiraEm);
     }
 
-    public async Task LogoutAsync(string refreshToken)
+    public async Task LogoutAsync(string? refreshToken)
     {
         if (string.IsNullOrEmpty(refreshToken))
             return;
@@ -236,7 +236,7 @@ public class AuthService : IAuthService
             await RevogarSessaoAsync(sessaoId.Value, MotivoDaRevogacao.Logout);
     }
 
-    private async Task<string> AbrirSessaoAsync(string usuarioId)
+    private async Task<(string Valor, DateTime ExpiraEm)> AbrirSessaoAsync(string usuarioId)
     {
         var agora = DateTime.UtcNow;
 
@@ -252,9 +252,10 @@ public class AuthService : IAuthService
         return await EmitirRefreshTokenAsync(sessao.Id);
     }
 
-    private async Task<string> EmitirRefreshTokenAsync(Guid sessaoId)
+    private async Task<(string Valor, DateTime ExpiraEm)> EmitirRefreshTokenAsync(Guid sessaoId)
     {
         var refreshToken = _tokenService.GenerateRefreshToken();
+        var expiraEm = _tokenService.GetRefreshTokenExpiration();
 
         _context.RefreshTokensDeSessao.Add(new RefreshTokenDaSessao
         {
@@ -262,11 +263,11 @@ public class AuthService : IAuthService
             SessaoId = sessaoId,
             Hash = _tokenService.HashRefreshToken(refreshToken),
             CriadoEm = DateTime.UtcNow,
-            ExpiraEm = _tokenService.GetRefreshTokenExpiration()
+            ExpiraEm = expiraEm
         });
         await _context.SaveChangesAsync();
 
-        return refreshToken;
+        return (refreshToken, expiraEm);
     }
 
     private async Task RevogarSessaoENegarAsync(Guid sessaoId, string motivo)

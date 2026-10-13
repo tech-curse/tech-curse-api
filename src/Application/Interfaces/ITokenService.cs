@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using TechCurse.Application.DTOs;
 
@@ -13,6 +12,4 @@ public interface ITokenService
     string HashRefreshToken(string refreshToken);
 
     DateTime GetRefreshTokenExpiration();
-
-    ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
 }

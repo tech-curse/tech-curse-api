@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Permitir que uma pessoa crie a própria conta de aluno, entre no sistema e mantenha a sessão aberta sem digitar a senha de novo, e permitir que um administrador crie contas com outros papéis. A API emite um **access token** JWT de vida curta, enviado em todas as requisições, e um **refresh token** opaco, trocado por um novo par quando o access token vence.
+Permitir que uma pessoa crie a própria conta de aluno, entre no sistema e mantenha a sessão aberta sem digitar a senha de novo, e permitir que um administrador crie contas com outros papéis. A API emite um **access token** JWT de vida curta, enviado em todas as requisições, e um **refresh token** opaco, guardado num cookie `HttpOnly` e trocado por um novo access token quando ele vence.
 
 ## Regras
 
@@ -11,8 +11,8 @@ Permitir que uma pessoa crie a própria conta de aluno, entre no sistema e mante
 3. Todo usuário `Student` tem um perfil de estudante, criado junto com o usuário. Se o perfil não puder ser criado, o usuário também não fica criado.
 4. O e-mail identifica o usuário no login e é único no sistema.
 5. Política de senha: de 12 a 128 caracteres, com pelo menos uma letra minúscula, uma maiúscula, um dígito e um caractere que não seja letra nem dígito. A política vale ao definir a senha: quem já tinha uma senha mais curta continua entrando com ela. As mensagens de erro do Identity são em português (`DescritorDeErrosDoIdentity`).
-6. O access token vale 2 horas a partir da emissão. Não há tolerância de relógio na validação.
-7. O refresh token vale `Jwt:RefreshTokenDays` dias (padrão `7`). Cada uso gera um novo par e invalida o refresh token anterior (rotação).
+6. O access token vale `Jwt:AccessTokenMinutes` minutos (padrão `15`) a partir da emissão. Não há tolerância de relógio na validação.
+7. O refresh token vale `Jwt:RefreshTokenDays` dias (padrão `7`) e trafega **só** no cookie `__Secure-tech-curse-sessao`, com `HttpOnly`, `Secure`, `SameSite=Strict` e `Path=/tech-curse/Auth`: o JavaScript não o lê, e o navegador só o envia às rotas de autenticação. Cada uso gera um novo refresh token, num novo cookie, e invalida o anterior (rotação).
 8. Cada login abre uma **sessão**. Um usuário pode ter várias sessões ao mesmo tempo (celular e computador), e cada uma é encerrada sem afetar as outras. Um login apaga as sessões já revogadas ou vencidas do próprio usuário.
 9. O banco guarda apenas o hash SHA-256 do refresh token (tabela `RefreshTokens`, ligada à sessão em `SessoesDeAutenticacao`). O valor em texto puro só existe na resposta HTTP.
 10. Falhas de autenticação não revelam se um e-mail está cadastrado.
@@ -26,9 +26,9 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 | --- | --- | --- | --- |
 | `POST /register` | público | `{ name, email, password, confirmPassword }` | `201` `{ "mensagem": "Usuário registrado com sucesso." }` |
 | `POST /users` | `Admin` | `{ name, email, role, password, confirmPassword }` | `201` `{ "mensagem": "Usuário criado com sucesso." }` |
-| `POST /login` | público | `{ email, password }` | `200` `{ accessToken, refreshToken, expiresAt }` |
-| `POST /refresh` | público | `{ accessToken, refreshToken }` | `200` `{ accessToken, refreshToken, expiresAt }` |
-| `POST /logout` | público | `{ refreshToken }` | `204`, sempre |
+| `POST /login` | público | `{ email, password }` | `200` `{ accessToken, expiresAt }` e o cookie da sessão |
+| `POST /refresh` | público (cookie da sessão) | sem corpo | `200` `{ accessToken, expiresAt }` e um novo cookie; `401` apaga o cookie |
+| `POST /logout` | público (cookie da sessão) | sem corpo | `204`, sempre, e apaga o cookie |
 
 - `role` é texto: `"Admin"`, `"Instructor"` ou `"Student"`.
 - `expiresAt` é o instante de expiração do **access token**, em UTC (ISO-8601).
@@ -126,11 +126,11 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 ### Login
 
-**AUTH-014: Credenciais válidas devolvem um par de tokens**
+**AUTH-014: Credenciais válidas abrem a sessão**
 *Dado* um usuário cadastrado
 *Quando* ele envia `POST /login` com e-mail e senha corretos
-*Então* a resposta é `200` com `accessToken`, `refreshToken` e `expiresAt`
-*E* `expiresAt` é 2 horas após o instante da emissão
+*Então* a resposta é `200` com `accessToken` e `expiresAt`, e o refresh token vem só no cookie da sessão
+*E* `expiresAt` é 15 minutos após o instante da emissão
 **Status:** implementado
 
 **AUTH-015: O access token carrega identidade e papel**
@@ -184,15 +184,15 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 ### Renovação da sessão (refresh)
 
-**AUTH-023: Refresh válido devolve um novo par e invalida o anterior**
-*Dado* o par de tokens de um login, com o access token já vencido ou não
-*Quando* o cliente envia `POST /refresh` com esse par
-*Então* a resposta é `200` com um novo `accessToken`, um novo `refreshToken` e um novo `expiresAt`
+**AUTH-023: Refresh válido devolve um novo access token e troca o cookie**
+*Dado* o cookie da sessão de um login, com o access token já vencido ou não
+*Quando* o cliente envia `POST /refresh` com esse cookie
+*Então* a resposta é `200` com um novo `accessToken` e um novo `expiresAt`, e o cookie passa a ter um novo refresh token
 *E* o novo access token funciona nos endpoints protegidos
 **Status:** implementado
 
 **AUTH-024: Refresh token usado uma vez não vale de novo**
-*Dado* um refresh token que já foi trocado por um novo par
+*Dado* um refresh token que já foi trocado por um novo
 *Quando* o cliente tenta usá-lo outra vez
 *Então* a resposta é `401`
 **Status:** implementado
@@ -212,10 +212,10 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 **AUTH-027: Access token adulterado no refresh é recusado com 401**
 *Quando* o `accessToken` enviado ao `POST /refresh` está malformado, tem assinatura inválida ou usa outro algoritmo
 *Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
-**Status:** implementado
+**Status:** removido na Fase 5. O refresh não recebe mais o access token: a sessão vem só do cookie (`AUTH-034`).
 
 **AUTH-028: Usuário removido não renova a sessão**
-*Dado* um par de tokens de um usuário que não existe mais
+*Dado* o cookie da sessão de um usuário que não existe mais
 *Quando* o cliente tenta o refresh
 *Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
 **Status:** implementado
@@ -258,9 +258,12 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *E* duas renovações simultâneas com o mesmo token não geram duas sessões válidas: marcar o token como usado é condicional (`UPDATE ... WHERE UsadoEm IS NULL`), e quem chega depois é tratado como reuso
 **Status:** implementado
 
-**AUTH-034: Refresh token entregue em cookie HttpOnly e access token mais curto**
-*Então* o refresh token trafega só num cookie `HttpOnly`, `Secure` e `SameSite`, fora do alcance do JavaScript, e o access token passa a valer minutos, não horas
-**Status:** planejado (Fase 5)
+**AUTH-034: Refresh token entregue em cookie HttpOnly e access token curto**
+*Quando* o login, o refresh ou o logout respondem
+*Então* o refresh token nunca aparece no corpo: só no cookie `__Secure-tech-curse-sessao`, com `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/tech-curse/Auth` e expiração igual à do refresh token
+*E* o refresh e o logout leem o cookie, sem corpo; refresh sem cookie, ou recusado, responde `401` e apaga o cookie; o logout sempre o apaga
+*E* o access token vale `Jwt:AccessTokenMinutes` minutos (padrão `15`)
+**Status:** implementado. O web passa a usar o cookie em `WEB-AUTH-022`.
 
 ### Configuração
 
