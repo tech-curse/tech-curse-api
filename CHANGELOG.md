@@ -60,6 +60,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Segurança
 
+- Cinco senhas erradas seguidas bloqueiam a conta por 15 minutos, com a mesma resposta genérica do login errado. O bloqueio estava configurado no Identity, mas o login não o aplicava (`AUTH-018`).
 - Erro inesperado responde `500` com `"Ocorreu um erro inesperado. Informe o código de correlação ao suporte."`; antes o `detail` trazia a mensagem interna da exceção (PostgreSQL, Redis, JWT). O log da exceção passa a carregar o mesmo `CorrelationId` da resposta (`TRV-004`).
 - O login responde igual, `401` com `"E-mail ou senha incorretos."`, para e-mail inexistente e para senha errada. Antes, a senha errada respondia `"Usuário não autenticado."`, o que revelava quais e-mails estão cadastrados; o Swagger também documentava um `400` que não existe (`AUTH-016`).
 - Remover um aluno passa a bloquear de fato a conta dele. O handler só bloqueava se a navegação `Student.IdentityUser` estivesse carregada, e ela nunca estava: o aluno removido continuava fazendo login (`ALU-014`).
