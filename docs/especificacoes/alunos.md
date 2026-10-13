@@ -24,7 +24,6 @@ Rotas sob `/tech-curse/Student`.
 | `GET /{id}/enrollments` | o próprio aluno ou `Admin` | | `200` lista de matrículas |
 | `PUT /{id}` | o próprio aluno ou `Admin` | `{ nome }` | `204` |
 | `DELETE /{id}` | `Admin` | | `204` |
-| `POST /` | `Admin` | `{ nome, email }` | `201` perfil (ver `ALU-020`) |
 
 - Perfil: `{ id, nome, email, dataCadastro }`.
 - Matrícula do aluno: `{ courseId, titulo, descricao, categoria, matriculaAtiva, enrollmentId }`.
@@ -154,15 +153,12 @@ Rotas sob `/tech-curse/Student`.
 ### Criação de perfil por Admin
 
 **ALU-020: `POST /Student` deixa de existir**
-*Então* `POST /Student` responde `404`, porque o perfil sempre nasce com o usuário (`AUTH-001`, `AUTH-011`)
-**Status:** divergente: proposta de remoção na Fase 3
-**Hoje:** o endpoint cria um perfil para um usuário que já existe. Ele servia a contas criadas antes de o registro criar o perfil, situação que não existe neste repositório. E tem problemas próprios: responde `409` com `"Usuário não encontrado."` quando não há usuário com o e-mail, não verifica se o usuário é `Student` (cria perfil de aluno para um `Instructor`), e ignora alunos removidos ao checar e-mail repetido (o mesmo usuário pode ganhar um segundo perfil).
+*Então* `POST /Student` responde `405`, porque o perfil sempre nasce com o usuário (`AUTH-001`, `AUTH-011`). É `405`, e não `404`, porque a rota `/Student` continua existindo para `GET`
+**Status:** implementado
 
 ## Divergências
 
-| Cenário | Hoje | Proposta | Quando |
-| --- | --- | --- | --- |
-| `ALU-020` | `POST /Student` sem uso e com falhas próprias | Remover o endpoint | Fase 3 |
+Nenhuma: o comportamento atual segue esta especificação.
 
 ## Fora de escopo
 

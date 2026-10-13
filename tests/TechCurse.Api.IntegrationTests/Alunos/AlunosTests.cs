@@ -258,4 +258,15 @@ public sealed class AlunosTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(am
         Assert.Equal(HttpStatusCode.OK, peloAdmin.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, peloOutro.StatusCode);
     }
+
+    [Fact]
+    [Trait("Especificacao", "ALU-020")]
+    public async Task Criar_perfil_por_POST_Student_nao_existe()
+    {
+        var admin = ClienteAutenticado((await CriarUsuarioEEntrarAsync("Admin")).AccessToken);
+
+        var resposta = await admin.PostAsJsonAsync("/tech-curse/Student", new { nome = "Fulano", email = NovoEmail() }, Cancelamento);
+
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, resposta.StatusCode);
+    }
 }

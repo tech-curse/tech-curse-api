@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using TechCurse.Application.DTOs;
-using TechCurse.Application.Features.Students.Commands.CreateStudent;
 using TechCurse.Application.Features.Students.Commands.DeleteStudent;
 using TechCurse.Application.Features.Students.Commands.UpdateStudent;
 using TechCurse.Application.Features.Students.Queries.GetSelfStudent;
@@ -26,24 +25,6 @@ public class StudentController : ControllerBase
     public StudentController(IMediator mediator)
     {
         _mediator = mediator;
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [SwaggerOperation(
-                Summary = "Cria um novo estudante no sistema.",
-                Description = "**Acesso:** Requer role de Admin."
-            )]
-    [SwaggerResponse(StatusCodes.Status201Created, "Estudante criado com sucesso.", typeof(StudentOutputDto))]
-    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Usuário não autenticado.", typeof(ProblemDetails))]
-    [SwaggerResponse(StatusCodes.Status403Forbidden, "Acesso negado.", typeof(ProblemDetails))]
-    [SwaggerResponse(StatusCodes.Status409Conflict, "E-mail ou documento já em uso.", typeof(ProblemDetails))]
-    [SwaggerResponse(StatusCodes.Status422UnprocessableEntity, "Erro de validação.", typeof(ProblemDetails))]
-    public async Task<IActionResult> Post([FromBody] StudentPostDto input)
-    {
-        var command = new CreateStudentCommand(input.Nome, input.Email);
-        var result = await _mediator.Send(command);
-        return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
 
     [HttpGet]
