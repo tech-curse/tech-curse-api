@@ -60,4 +60,4 @@ jobs:
 
       - name: Rastreabilidade
         if: ${{ !cancelled() }}
-        run: python3 scripts/rastreabilidade.py >> "$GITHUB_STEP_SUMMARY"
+        run: python3 scripts/rastreabilidade.py --estrito >> "$GITHUB_STEP_SUMMARY"

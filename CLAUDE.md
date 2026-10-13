@@ -127,7 +127,7 @@ Dois projetos em `tests/`, com propriedades e pacotes comuns em `tests/Directory
 
 Convenções:
 
-- **Todo teste declara o cenário** com `[Trait("Especificacao", "<ID>")]`. `scripts/rastreabilidade.py` lista os cenários implementados sem teste e falha se um teste citar ID inexistente; no CI o relatório vai para o resumo da execução.
+- **Todo teste declara o cenário** com `[Trait("Especificacao", "<ID>")]`. `scripts/rastreabilidade.py` lista os cenários implementados sem teste e falha se um teste citar ID inexistente. No CI ele roda com `--estrito`: **cenário marcado implementado sem teste reprova o PR**. Ao implementar um cenário, o teste entra no mesmo PR; o relatório vai para o resumo da execução.
 - **A configuração dos testes entra pela factory** (`UseSetting`), nunca por `.env`: connection strings do Testcontainers, chave de assinatura gerada por execução e `RateLimiting:Enabled=false`. O ambiente é `Testing`, então o seed de Admin de `Development` não roda.
 - **Asserções só com `Assert` do xUnit.** FluentAssertions passou a ter licença comercial na versão 8.
 - **Cancelamento:** passe `TestContext.Current.CancellationToken` (propriedade `Cancelamento` da base) às chamadas assíncronas; o analisador do xUnit v3 exige, e o build trata warning como erro.
