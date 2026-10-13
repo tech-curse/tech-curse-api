@@ -164,12 +164,14 @@ Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, qu
 
 **Compose de desenvolvimento** (`compose.yaml`): PostgreSQL 17 e Redis 7 do ECR Public (as mesmas imagens dos testes) e a API, com as portas só em `127.0.0.1` (`5432`, `6379`, `5130`). A API recebe o `.env` por `env_file`, e o compose sobrescreve só as connection strings, montadas com `POSTGRES_USER`/`POSTGRES_PASSWORD` e o nome dos serviços. `stop_grace_period: 30s` acompanha o `EncerramentoSetup.TempoMaximo` de 25 s (`TRV-036`): o processo precisa terminar sozinho antes de o Docker mandar o `SIGKILL`.
 
-O CI (`.github/workflows/ci.yml`) roda em todo PR e em todo push na `main`, com dois jobs:
+O CI (`.github/workflows/ci.yml`) roda em todo PR, em todo push na `main` e em toda tag `vX.Y.Z`, com três jobs:
 
 - `ci`: restore, build Release com `TreatWarningsAsErrors`, `dotnet format --verify-no-changes`, testes com cobertura e rastreabilidade estrita. É o check obrigatório na proteção da `main`; renomear o job quebra a proteção.
 - `imagem`: constrói a imagem (cache do Buildx no GitHub Actions), gera um `.env` descartável, sobe o compose com `--wait` e roda `scripts/verificar-conteiner.sh` (usuário não root, liveness, readiness, login do Admin do seed e encerramento com código `0` em menos de 30 s). Roda igual na máquina local, com o compose no ar.
 
-Nenhuma imagem é publicada a partir deste repositório ainda.
+- `publicar`: só em push (nunca em PR), depois de `ci` e `imagem` passarem. Publica em `ghcr.io/tech-curse/tech-curse-api` com o `GITHUB_TOKEN` do workflow, sem segredo nenhum. Push na `main` gera a tag `sha-<commit curto>` (a imagem de staging, Fase 7); tag `vX.Y.Z` gera `X.Y.Z` (produção). **Nunca `latest`.** Numa tag, o job falha se ela não bater com o `VersionPrefix`. A imagem sai com SBOM, proveniência do BuildKit e atestação de proveniência do GitHub, verificável com `gh attestation verify oci://ghcr.io/tech-curse/tech-curse-api:<tag> --owner tech-curse`.
+
+O `publicar` reconstrói a imagem a partir do cache do Buildx que o job `imagem` acabou de gravar: as camadas são as mesmas que foram verificadas, mas não é o mesmo artefato byte a byte. Se um dia isso importar, o caminho é o `imagem` exportar a imagem como artefato e o `publicar` só a enviar.
 
 O que a entrega anterior ensinou:
 
@@ -191,7 +193,7 @@ git tag -a vX.Y.Z -m "Release X.Y.Z"
 git push origin vX.Y.Z
 ```
 
-O repositório foi importado sem histórico, e a versão recomeçou em `1.0.0`: a primeira tag (`v1.0.0`) sai no primeiro deploy em produção. O Swagger lê a versão do `AssemblyInformationalVersionAttribute`, sem o sufixo `+<sha>` que o SDK acrescenta; não fixe versão em código.
+A tag dispara o job `publicar`, que gera a imagem `ghcr.io/tech-curse/tech-curse-api:X.Y.Z`; antes de criar a tag, suba o `VersionPrefix` num PR. O repositório foi importado sem histórico, e a versão recomeçou em `1.0.0`: a primeira tag (`v1.0.0`) sai no primeiro deploy em produção. O Swagger lê a versão do `AssemblyInformationalVersionAttribute`, sem o sufixo `+<sha>` que o SDK acrescenta; não fixe versão em código.
 
 ## Formatação
 
