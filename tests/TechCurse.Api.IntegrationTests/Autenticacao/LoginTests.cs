@@ -151,6 +151,49 @@ public sealed class LoginTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(amb
     }
 
     [Fact]
+    [Trait("Especificacao", "AUTH-018")]
+    public async Task Cinco_erros_seguidos_bloqueiam_a_conta_por_15_minutos()
+    {
+        var email = NovoEmail();
+        await RegistrarEEntrarAsync(email);
+        for (var tentativa = 0; tentativa < 5; tentativa++)
+        {
+            await EntrarComAsync(email, "Senha@Errada1");
+        }
+
+        var comASenhaCerta = await EntrarComAsync(email, SenhaValida);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, comASenhaCerta.StatusCode);
+        Assert.Equal(MensagemDeCredenciaisInvalidas, await DetalheDoErroAsync(comASenhaCerta));
+        using var escopo = Ambiente.Fabrica.Services.CreateScope();
+        var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var usuario = (await usuarios.FindByEmailAsync(email))!;
+        var fimDoBloqueio = (await usuarios.GetLockoutEndDateAsync(usuario))!.Value;
+        Assert.InRange(fimDoBloqueio - DateTimeOffset.UtcNow, TimeSpan.FromMinutes(14), TimeSpan.FromMinutes(15));
+
+        await usuarios.SetLockoutEndDateAsync(usuario, DateTimeOffset.UtcNow.AddSeconds(-1));
+        Assert.Equal(HttpStatusCode.OK, (await EntrarComAsync(email, SenhaValida)).StatusCode);
+    }
+
+    [Fact]
+    [Trait("Especificacao", "AUTH-018")]
+    public async Task Login_certo_zera_a_contagem_de_erros()
+    {
+        var email = NovoEmail();
+        await RegistrarEEntrarAsync(email);
+
+        for (var rodada = 0; rodada < 2; rodada++)
+        {
+            for (var tentativa = 0; tentativa < 4; tentativa++)
+            {
+                await EntrarComAsync(email, "Senha@Errada1");
+            }
+
+            Assert.Equal(HttpStatusCode.OK, (await EntrarComAsync(email, SenhaValida)).StatusCode);
+        }
+    }
+
+    [Fact]
     [Trait("Especificacao", "AUTH-037")]
     public async Task Endpoints_de_autenticacao_tem_limite_de_requisicoes_proprio()
     {
