@@ -18,17 +18,19 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
 {
     private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
 
-    private Task<HttpResponseMessage> RenovarAsync(HttpClient cliente, string accessToken, string refreshToken) =>
-        cliente.PostAsJsonAsync("/tech-curse/Auth/refresh", new { accessToken, refreshToken }, Cancelamento);
+    private Task<HttpResponseMessage> RenovarAsync(HttpClient cliente, string? refreshToken) =>
+        cliente.SendAsync(ComCookieDeSessao(HttpMethod.Post, "/tech-curse/Auth/refresh", refreshToken), Cancelamento);
 
-    private Task<HttpResponseMessage> RenovarAsync(string accessToken, string refreshToken) =>
-        RenovarAsync(Cliente, accessToken, refreshToken);
+    private Task<HttpResponseMessage> RenovarAsync(string? refreshToken) =>
+        RenovarAsync(Cliente, refreshToken);
 
-    private Task<HttpResponseMessage> SairAsync(string refreshToken) =>
-        Cliente.PostAsJsonAsync("/tech-curse/Auth/logout", new { refreshToken }, Cancelamento);
+    private Task<HttpResponseMessage> SairAsync(string? refreshToken) =>
+        Cliente.SendAsync(ComCookieDeSessao(HttpMethod.Post, "/tech-curse/Auth/logout", refreshToken), Cancelamento);
 
-    private async Task<string> RefreshTokenDaRespostaAsync(HttpResponseMessage resposta) =>
-        (await resposta.Content.ReadFromJsonAsync<JsonElement>(Cancelamento)).GetProperty("refreshToken").GetString()!;
+    private static string RefreshTokenDaResposta(HttpResponseMessage resposta) => ValorDoCookieDeSessao(resposta);
+
+    private static string[] AtributosDoCookie(HttpResponseMessage resposta) =>
+        CabecalhoDoCookieDeSessao(resposta)!.Split(';').Skip(1).Select(atributo => atributo.Trim().ToLowerInvariant()).ToArray();
 
     private async Task<(string? Motivo, bool Ativa)[]> SessoesAsync(string email)
     {
@@ -65,12 +67,12 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
     {
         var sessao = await RegistrarEEntrarAsync();
 
-        var resposta = await RenovarAsync(sessao.AccessToken, sessao.RefreshToken);
+        var resposta = await RenovarAsync(sessao.RefreshToken);
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>(Cancelamento);
         var novoAccessToken = corpo.GetProperty("accessToken").GetString()!;
-        Assert.NotEqual(sessao.RefreshToken, corpo.GetProperty("refreshToken").GetString());
+        Assert.NotEqual(sessao.RefreshToken, RefreshTokenDaResposta(resposta));
         var perfil = await ClienteAutenticado(novoAccessToken).GetAsync("/tech-curse/Student/me", Cancelamento);
         Assert.Equal(HttpStatusCode.OK, perfil.StatusCode);
     }
@@ -80,9 +82,9 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
     public async Task Refresh_token_usado_uma_vez_nao_vale_de_novo()
     {
         var sessao = await RegistrarEEntrarAsync();
-        Assert.Equal(HttpStatusCode.OK, (await RenovarAsync(sessao.AccessToken, sessao.RefreshToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await RenovarAsync(sessao.RefreshToken)).StatusCode);
 
-        var reuso = await RenovarAsync(sessao.AccessToken, sessao.RefreshToken);
+        var reuso = await RenovarAsync(sessao.RefreshToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, reuso.StatusCode);
     }
@@ -98,10 +100,8 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
         await cliente.PostAsJsonAsync("/tech-curse/Auth/register",
             new { name = "AlunoVencido", email, password = SenhaValida, confirmPassword = SenhaValida }, Cancelamento);
         var login = await cliente.PostAsJsonAsync("/tech-curse/Auth/login", new { email, password = SenhaValida }, Cancelamento);
-        var corpo = await login.Content.ReadFromJsonAsync<JsonElement>(Cancelamento);
 
-        var resposta = await RenovarAsync(cliente,
-            corpo.GetProperty("accessToken").GetString()!, corpo.GetProperty("refreshToken").GetString()!);
+        var resposta = await RenovarAsync(cliente, RefreshTokenDaResposta(login));
 
         Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
         Assert.Equal(MensagemDeRefreshInvalido, await DetalheDoErroAsync(resposta));
@@ -114,49 +114,9 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
     {
         var sessao = await RegistrarEEntrarAsync();
 
-        var resposta = await RenovarAsync(sessao.AccessToken, Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)));
+        var resposta = await RenovarAsync(Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)));
 
         Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-    }
-
-    [Fact]
-    [Trait("Especificacao", "AUTH-027")]
-    public async Task Access_token_malformado_no_refresh_responde_401()
-    {
-        var sessao = await RegistrarEEntrarAsync();
-
-        var resposta = await RenovarAsync("nao-e-um-jwt", sessao.RefreshToken);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-        Assert.Equal(MensagemDeRefreshInvalido, await DetalheDoErroAsync(resposta));
-    }
-
-    [Fact]
-    [Trait("Especificacao", "AUTH-027")]
-    public async Task Access_token_com_assinatura_de_outra_chave_responde_401()
-    {
-        var sessao = await RegistrarEEntrarAsync();
-        var adulterado = TokenAssinado(IdDoUsuario(sessao.AccessToken), sessao.Email, "Student",
-            RandomNumberGenerator.GetBytes(48), SecurityAlgorithms.HmacSha256, DateTime.UtcNow.AddHours(1));
-
-        var resposta = await RenovarAsync(adulterado, sessao.RefreshToken);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-        Assert.Equal(MensagemDeRefreshInvalido, await DetalheDoErroAsync(resposta));
-    }
-
-    [Fact]
-    [Trait("Especificacao", "AUTH-027")]
-    public async Task Access_token_com_outro_algoritmo_responde_401()
-    {
-        var sessao = await RegistrarEEntrarAsync();
-        var outroAlgoritmo = TokenAssinado(IdDoUsuario(sessao.AccessToken), sessao.Email, "Student",
-            Encoding.UTF8.GetBytes(Ambiente.Fabrica.ChaveDeAssinatura), SecurityAlgorithms.HmacSha512, DateTime.UtcNow.AddHours(1));
-
-        var resposta = await RenovarAsync(outroAlgoritmo, sessao.RefreshToken);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-        Assert.Equal(MensagemDeRefreshInvalido, await DetalheDoErroAsync(resposta));
     }
 
     [Fact]
@@ -171,7 +131,7 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
             await usuarios.DeleteAsync(usuario!);
         }
 
-        var resposta = await RenovarAsync(sessao.AccessToken, sessao.RefreshToken);
+        var resposta = await RenovarAsync(sessao.RefreshToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
         Assert.Equal(MensagemDeRefreshInvalido, await DetalheDoErroAsync(resposta));
@@ -202,7 +162,7 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
             .DeleteAsync($"/tech-curse/Student/{perfil.GetProperty("id").GetInt32()}", Cancelamento);
         Assert.Equal(HttpStatusCode.NoContent, remocao.StatusCode);
 
-        var resposta = await RenovarAsync(aluno.AccessToken, aluno.RefreshToken);
+        var resposta = await RenovarAsync(aluno.RefreshToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
         Assert.Equal(MensagemDeRefreshInvalido, await DetalheDoErroAsync(resposta));
@@ -216,14 +176,14 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
         var celular = await RegistrarEEntrarAsync();
         var computador = await EntrarAsync(celular.Email);
 
-        var renovacaoDoCelular = await RenovarAsync(celular.AccessToken, celular.RefreshToken);
-        var renovacaoDoComputador = await RenovarAsync(computador.AccessToken, computador.RefreshToken);
+        var renovacaoDoCelular = await RenovarAsync(celular.RefreshToken);
+        var renovacaoDoComputador = await RenovarAsync(computador.RefreshToken);
         Assert.Equal(HttpStatusCode.OK, renovacaoDoCelular.StatusCode);
         Assert.Equal(HttpStatusCode.OK, renovacaoDoComputador.StatusCode);
 
-        await SairAsync(await RefreshTokenDaRespostaAsync(renovacaoDoCelular));
+        await SairAsync(RefreshTokenDaResposta(renovacaoDoCelular));
 
-        var computadorDepois = await RenovarAsync(computador.AccessToken, await RefreshTokenDaRespostaAsync(renovacaoDoComputador));
+        var computadorDepois = await RenovarAsync(RefreshTokenDaResposta(renovacaoDoComputador));
         Assert.Equal(HttpStatusCode.OK, computadorDepois.StatusCode);
         Assert.Equal(1, (await SessoesAsync(celular.Email)).Count(sessao => sessao.Ativa));
     }
@@ -235,7 +195,7 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
         var sessao = await RegistrarEEntrarAsync();
 
         var saida = await SairAsync(sessao.RefreshToken);
-        var renovacao = await RenovarAsync(sessao.AccessToken, sessao.RefreshToken);
+        var renovacao = await RenovarAsync(sessao.RefreshToken);
 
         Assert.Equal(HttpStatusCode.NoContent, saida.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, renovacao.StatusCode);
@@ -258,13 +218,11 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
     public async Task Reuso_de_refresh_token_revoga_a_sessao_inteira()
     {
         var sessao = await RegistrarEEntrarAsync();
-        var renovacao = await RenovarAsync(sessao.AccessToken, sessao.RefreshToken);
-        var corpo = await renovacao.Content.ReadFromJsonAsync<JsonElement>(Cancelamento);
-        var accessTokenNovo = corpo.GetProperty("accessToken").GetString()!;
-        var refreshTokenNovo = corpo.GetProperty("refreshToken").GetString()!;
+        var renovacao = await RenovarAsync(sessao.RefreshToken);
+        var refreshTokenNovo = RefreshTokenDaResposta(renovacao);
 
-        var reuso = await RenovarAsync(sessao.AccessToken, sessao.RefreshToken);
-        var tokenNovoDepois = await RenovarAsync(accessTokenNovo, refreshTokenNovo);
+        var reuso = await RenovarAsync(sessao.RefreshToken);
+        var tokenNovoDepois = await RenovarAsync(refreshTokenNovo);
 
         Assert.Equal(HttpStatusCode.Unauthorized, reuso.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, tokenNovoDepois.StatusCode);
@@ -278,7 +236,7 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
         var sessao = await RegistrarEEntrarAsync();
         var clientes = Enumerable.Range(0, 5).Select(_ => Ambiente.Fabrica.CreateClient()).ToArray();
 
-        var respostas = await Task.WhenAll(clientes.Select(cliente => RenovarAsync(cliente, sessao.AccessToken, sessao.RefreshToken)));
+        var respostas = await Task.WhenAll(clientes.Select(cliente => RenovarAsync(cliente, sessao.RefreshToken)));
 
         Assert.True(respostas.Count(resposta => resposta.StatusCode == HttpStatusCode.OK) <= 1);
         Assert.Contains(respostas, resposta => resposta.StatusCode == HttpStatusCode.Unauthorized);
@@ -303,5 +261,73 @@ public sealed class RenovacaoDeSessaoTests(AmbienteDeTeste ambiente) : TesteDeIn
         var perfil = await cliente.SendAsync(requisicao, Cancelamento);
 
         Assert.Equal(HttpStatusCode.OK, perfil.StatusCode);
+    }
+
+    [Fact]
+    [Trait("Especificacao", "AUTH-034")]
+    public async Task Refresh_token_viaja_so_num_cookie_HttpOnly()
+    {
+        var email = NovoEmail();
+        await RegistrarEEntrarAsync(email);
+
+        var login = await Cliente.PostAsJsonAsync("/tech-curse/Auth/login", new { email, password = SenhaValida }, Cancelamento);
+
+        var corpo = await login.Content.ReadFromJsonAsync<JsonElement>(Cancelamento);
+        Assert.False(corpo.TryGetProperty("refreshToken", out _));
+        var atributos = AtributosDoCookie(login);
+        Assert.Contains("httponly", atributos);
+        Assert.Contains("secure", atributos);
+        Assert.Contains("samesite=strict", atributos);
+        Assert.Contains("path=/tech-curse/auth", atributos);
+        Assert.Contains(atributos, atributo => atributo.StartsWith("expires=", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    [Trait("Especificacao", "AUTH-034")]
+    public async Task Renovacao_troca_o_cookie_e_logout_o_apaga()
+    {
+        var sessao = await RegistrarEEntrarAsync();
+
+        var renovacao = await RenovarAsync(sessao.RefreshToken);
+        var corpo = await renovacao.Content.ReadFromJsonAsync<JsonElement>(Cancelamento);
+        var saida = await SairAsync(RefreshTokenDaResposta(renovacao));
+
+        Assert.Equal(HttpStatusCode.OK, renovacao.StatusCode);
+        Assert.False(string.IsNullOrEmpty(corpo.GetProperty("accessToken").GetString()));
+        Assert.False(corpo.TryGetProperty("refreshToken", out _));
+        Assert.NotEqual(sessao.RefreshToken, RefreshTokenDaResposta(renovacao));
+        Assert.Equal(HttpStatusCode.NoContent, saida.StatusCode);
+        Assert.Contains("expires=thu, 01 jan 1970 00:00:00 gmt", AtributosDoCookie(saida));
+    }
+
+    [Fact]
+    [Trait("Especificacao", "AUTH-034")]
+    public async Task Refresh_sem_cookie_ou_recusado_responde_401_e_apaga_o_cookie()
+    {
+        var semCookie = await RenovarAsync((string?)null);
+        var invalido = await RenovarAsync(Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, semCookie.StatusCode);
+        Assert.Equal(MensagemDeRefreshInvalido, await DetalheDoErroAsync(semCookie));
+        Assert.Equal(HttpStatusCode.Unauthorized, invalido.StatusCode);
+        Assert.Contains("expires=thu, 01 jan 1970 00:00:00 gmt", AtributosDoCookie(invalido));
+    }
+
+    [Fact]
+    [Trait("Especificacao", "AUTH-034")]
+    public async Task Validade_do_access_token_vem_da_configuracao()
+    {
+        await using var fabrica = Ambiente.Fabrica.WithWebHostBuilder(builder =>
+            builder.UseSetting("Jwt:AccessTokenMinutes", "5"));
+        using var cliente = fabrica.CreateClient();
+        var email = NovoEmail();
+        await cliente.PostAsJsonAsync("/tech-curse/Auth/register",
+            new { name = "AlunoDeCincoMinutos", email, password = SenhaValida, confirmPassword = SenhaValida }, Cancelamento);
+        var antes = DateTime.UtcNow;
+
+        var login = await cliente.PostAsJsonAsync("/tech-curse/Auth/login", new { email, password = SenhaValida }, Cancelamento);
+
+        var expiraEm = (await login.Content.ReadFromJsonAsync<JsonElement>(Cancelamento)).GetProperty("expiresAt").GetDateTime().ToUniversalTime();
+        Assert.InRange(expiraEm, antes.AddMinutes(5).AddSeconds(-5), DateTime.UtcNow.AddMinutes(5).AddSeconds(5));
     }
 }

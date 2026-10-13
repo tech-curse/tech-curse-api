@@ -62,6 +62,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Segurança
 
+- O refresh token sai do corpo das respostas e passa a viajar só num cookie `HttpOnly`, `Secure`, `SameSite=Strict`, restrito a `/tech-curse/Auth`, fora do alcance do JavaScript. `POST /Auth/refresh` e `POST /Auth/logout` leem o cookie, sem corpo; o refresh não recebe mais o access token. O access token passa de 2 horas para 15 minutos (`Jwt:AccessTokenMinutes`) (`AUTH-034`).
 - Sessões de autenticação em tabelas próprias (`SessoesDeAutenticacao` e `RefreshTokens`), no lugar do `AspNetUserTokens`. Um usuário pode ficar logado em vários aparelhos, e encerrar um não afeta os outros (`AUTH-031`); antes, um novo login derrubava o anterior. A reapresentação de um refresh token já usado revoga a sessão inteira, inclusive o token mais novo (`AUTH-033`).
 - Política de senha: de 12 a 128 caracteres, mantendo minúscula, maiúscula, número e símbolo; antes o mínimo era 8. Vale para senhas novas: contas existentes continuam entrando (`AUTH-004`).
 - Cinco senhas erradas seguidas bloqueiam a conta por 15 minutos, com a mesma resposta genérica do login errado. O bloqueio estava configurado no Identity, mas o login não o aplicava (`AUTH-018`).

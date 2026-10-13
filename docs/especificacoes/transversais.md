@@ -117,7 +117,7 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 *Quando* uma origem permitida recebe uma resposta real (não o preflight)
 *Então* `Access-Control-Expose-Headers` inclui `X-Correlation-ID` e `Retry-After`
 *E* `Access-Control-Allow-Credentials` não está presente
-**Status:** implementado. A Fase 5 muda isso para permitir o cookie do refresh token.
+**Status:** implementado. O cookie da sessão (`AUTH-034`) não muda isso: o front e a API ficam na mesma origem em todo ambiente, e o cookie nunca atravessa origens.
 
 **TRV-011: Preflight não é bloqueado por redirect nem por rate limiting**
 *Quando* um preflight chega por HTTP, ou quando o cliente já estourou o limite de requisições

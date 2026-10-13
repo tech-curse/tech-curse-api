@@ -80,8 +80,29 @@ public abstract class TesteDeIntegracao(AmbienteDeTeste ambiente) : IAsyncLifeti
         return new SessaoDeTeste(
             email,
             corpo.GetProperty("accessToken").GetString()!,
-            corpo.GetProperty("refreshToken").GetString()!,
+            ValorDoCookieDeSessao(resposta),
             corpo.GetProperty("expiresAt").GetDateTime());
+    }
+
+    public const string CookieDeSessao = "__Secure-tech-curse-sessao";
+
+    protected static string? CabecalhoDoCookieDeSessao(HttpResponseMessage resposta) =>
+        resposta.Headers.TryGetValues("Set-Cookie", out var valores)
+            ? valores.FirstOrDefault(valor => valor.StartsWith(CookieDeSessao + "=", StringComparison.Ordinal))
+            : null;
+
+    protected static string ValorDoCookieDeSessao(HttpResponseMessage resposta) =>
+        Uri.UnescapeDataString(CabecalhoDoCookieDeSessao(resposta)!.Split(';')[0][(CookieDeSessao.Length + 1)..]);
+
+    protected static HttpRequestMessage ComCookieDeSessao(HttpMethod metodo, string rota, string? refreshToken)
+    {
+        var requisicao = new HttpRequestMessage(metodo, rota);
+        if (refreshToken is not null)
+        {
+            requisicao.Headers.Add("Cookie", $"{CookieDeSessao}={Uri.EscapeDataString(refreshToken)}");
+        }
+
+        return requisicao;
     }
 
     protected static async Task<int> CriarCursoAsync(HttpClient admin, string titulo = "Curso de teste", string categoria = "Backend")

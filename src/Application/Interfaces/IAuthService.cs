@@ -6,7 +6,7 @@ public interface IAuthService
 {
     Task RegisterAsync(RegisterInputDto input);
     Task CreateUserAsync(CreateUserInputDto input);
-    Task<AuthOutputDto?> LoginAsync(LoginInputDto input);
-    Task<AuthOutputDto?> RefreshAsync(RefreshTokenInputDto input);
-    Task LogoutAsync(string refreshToken);
+    Task<SessaoEmitidaDto> LoginAsync(LoginInputDto input);
+    Task<SessaoEmitidaDto> RefreshAsync(string? refreshToken);
+    Task LogoutAsync(string? refreshToken);
 }
