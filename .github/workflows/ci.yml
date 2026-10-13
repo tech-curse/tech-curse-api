@@ -40,15 +40,16 @@ jobs:
       - name: Formatação
         run: dotnet format TechCurse.slnx --verify-no-changes --no-restore
 
-      - name: Imagens de teste
-        run: |
-          for imagem in public.ecr.aws/docker/library/postgres:17 public.ecr.aws/docker/library/redis:7; do
-            for tentativa in 1 2 3; do
-              docker pull --quiet "$imagem" && break
-              [ "$tentativa" -eq 3 ] && exit 1
-              sleep $((tentativa * 10))
-            done
-          done
+      - id: semana
+        run: echo "valor=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/imagens-de-apoio.tar
+          key: imagens-de-apoio-${{ hashFiles('scripts/imagens-de-apoio.sh') }}-${{ steps.semana.outputs.valor }}
+
+      - name: Imagens de apoio
+        run: scripts/imagens-de-apoio.sh ~/imagens-de-apoio.tar
 
       - name: Testes
         run: dotnet test --solution TechCurse.slnx --configuration Release --no-build --results-directory TestResults --coverage --coverage-output-format cobertura
@@ -97,13 +98,16 @@ jobs:
               -e "s|^Seed__Admin__Password=.*|Seed__Admin__Password=$senha_admin|" \
               .env.example > .env
 
+      - id: semana
+        run: echo "valor=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/imagens-de-apoio.tar
+          key: imagens-de-apoio-${{ hashFiles('scripts/imagens-de-apoio.sh') }}-${{ steps.semana.outputs.valor }}
+
       - name: Imagens de apoio
-        run: |
-          for tentativa in 1 2 3; do
-            docker compose pull --quiet postgres redis && break
-            [ "$tentativa" -eq 3 ] && exit 1
-            sleep $((tentativa * 10))
-          done
+        run: scripts/imagens-de-apoio.sh ~/imagens-de-apoio.tar
 
       - name: Subir o compose
         run: docker compose up --detach --no-build --wait --wait-timeout 180
