@@ -22,6 +22,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - `compose.yaml` de desenvolvimento com PostgreSQL 17, Redis 7 e a API, portas só em `127.0.0.1`.
 - Job `imagem` no CI: constrói a imagem, sobe o compose e verifica usuário não root, health checks, login e encerramento limpo (`scripts/verificar-conteiner.sh`).
 - Dependabot acompanha as imagens do `Dockerfile` e do `compose.yaml`.
+- Publicação da imagem no GHCR (`ghcr.io/tech-curse/tech-curse-api`) depois de os jobs `ci` e `imagem` passarem: `sha-<commit>` a cada push na `main` e `X.Y.Z` a cada tag de versão, nunca `latest`, com SBOM e atestação de proveniência.
 
 ### Alterado
 
