@@ -61,3 +61,8 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    ignore:
+      - dependency-name: "docker/library/postgres"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "docker/library/redis"
+        update-types: ["version-update:semver-major"]
