@@ -40,6 +40,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- Duas criações simultâneas de pagamento para a mesma matrícula: a segunda respondia `500` com a mensagem interna do PostgreSQL; agora responde `409` `"Já existe um pagamento ativo para esta matrícula."` (`PAG-004`).
+- Processar com `Pix` ou `Boleto` responde `422` com `errors.Type` = `"Método de pagamento não suportado."`; antes respondia `500` (`PAG-011`).
+- O `Admin` vê pela rota por aluno os pagamentos de um aluno removido; antes recebia `404`, embora o histórico financeiro deva sobreviver à remoção (`PAG-020`).
+- Os pagamentos de uma matrícula sem nenhum pagamento vêm como lista vazia (`200`); antes a resposta era `404`. Matrícula inexistente responde `404` `"Matrícula não encontrada."` (`PAG-022`).
 - `PageNumber` ou `PageSize` menor que `1` responde `422` com o parâmetro em `errors`. Antes, página `0` respondia `500` e tamanho `0` devolvia um `totalPages` sem sentido (`TRV-031`).
 - A listagem de alunos tem ordem estável: por id, ou por `nome` / `datacadastro` com `SortBy` e `SortDirection`. Antes não tinha ordenação, e um aluno podia se repetir ou sumir entre páginas (`ALU-008`).
 - A criação de curso limita a categoria a 50 caracteres, como a edição; antes um curso podia ser criado com uma categoria que depois impedia a edição (`CUR-009`).

@@ -9,12 +9,16 @@ namespace TechCurse.Application.Features.Payments.Queries.GetPaymentsByEnrollmen
 public class GetPaymentsByEnrollmentIdQueryHandler : IRequestHandler<GetPaymentsByEnrollmentIdQuery, IEnumerable<PaymentOutputDto>>
 {
     private readonly IPaymentRepository _paymentRepository;
+    private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly IStudentRepository _studentRepository;
     private readonly ICacheService _cacheService;
     private readonly ICurrentUserService _currentUserService;
 
-    public GetPaymentsByEnrollmentIdQueryHandler(IPaymentRepository paymentRepository, ICacheService cacheService, ICurrentUserService currentUserService)
+    public GetPaymentsByEnrollmentIdQueryHandler(IPaymentRepository paymentRepository, IEnrollmentRepository enrollmentRepository, IStudentRepository studentRepository, ICacheService cacheService, ICurrentUserService currentUserService)
     {
         _paymentRepository = paymentRepository;
+        _enrollmentRepository = enrollmentRepository;
+        _studentRepository = studentRepository;
         _cacheService = cacheService;
         _currentUserService = currentUserService;
     }
@@ -24,15 +28,16 @@ public class GetPaymentsByEnrollmentIdQueryHandler : IRequestHandler<GetPayments
         var enrollmentId = request.EnrollmentId;
         var cacheKey = $"{ChavesDeCachePagamento.PorMatricula}{enrollmentId}";
 
-        var payments = await _paymentRepository.GetByEnrollmentIdAsync(enrollmentId);
-
-        var student = payments.FirstOrDefault()?.Enrollment.Student;
-        if (student == null) throw new NotFoundException("Matrícula não encontrada ou sem estudante associado.");
+        var enrollment = await _enrollmentRepository.GetByIdAsync(enrollmentId);
+        var student = enrollment is null ? null : await _studentRepository.GetByIdIncludingDeletedAsync(enrollment.StudentId);
+        if (student == null) throw new NotFoundException("Matrícula não encontrada.");
 
         await ValidateRoleAcess(student.IdentityUserId);
 
         var cached = await _cacheService.GetAsync<IEnumerable<PaymentOutputDto>>(cacheKey);
         if (cached != null) return cached;
+
+        var payments = await _paymentRepository.GetByEnrollmentIdAsync(enrollmentId);
 
         var dtos = payments.Select(p => p.ParaDto()).ToList();
 

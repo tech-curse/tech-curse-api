@@ -16,6 +16,8 @@ public sealed class RepositorioDeAlunosQueFalhaAoGravar : IStudentRepository
 
     public Task<Student?> GetByIdAsync(int id) => throw new NotSupportedException();
 
+    public Task<Student?> GetByIdIncludingDeletedAsync(int id) => throw new NotSupportedException();
+
     public Task<Student?> GetByEmailAsync(string email) => throw new NotSupportedException();
 
     public Task<IEnumerable<CourseStudentOutputDto>> GetCoursesAsync(Student student) => throw new NotSupportedException();

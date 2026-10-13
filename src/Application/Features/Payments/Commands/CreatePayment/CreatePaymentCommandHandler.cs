@@ -11,6 +11,8 @@ namespace TechCurse.Application.Features.Payments.Commands.CreatePayment;
 
 public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand, PaymentOutputDto>
 {
+    public const string MensagemDePagamentoAtivoExistente = "Já existe um pagamento ativo para esta matrícula.";
+
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IPaymentRepository _paymentRepository;
     private readonly ICacheService _cacheService;
@@ -43,7 +45,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
         var paymentExists = await _paymentRepository.ExistsActiveByEnrollmentAsync(request.EnrollmentId);
         if (paymentExists)
         {
-            throw new ConflictException("Já existe um pagamento ativo para esta matrícula.");
+            throw new ConflictException(MensagemDePagamentoAtivoExistente);
         }
 
         Payment newPayment = new Payment

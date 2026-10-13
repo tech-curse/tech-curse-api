@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using TechCurse.Application.DTOs;
+using TechCurse.Application.Features.Payments.Commands.CreatePayment;
 using TechCurse.Application.Interfaces;
 using TechCurse.Domain.Entities;
+using TechCurse.Domain.Exceptions;
 using TechCurse.Infrastructure.Data;
 
 namespace TechCurse.Infrastructure.Repositories;
@@ -86,8 +89,16 @@ public class PaymentRepository : IPaymentRepository
 
     public async Task AddAsync(Payment payment)
     {
-        await _context.Payments.AddAsync(payment);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.Payments.AddAsync(payment);
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException erro) when (erro.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            _context.Entry(payment).State = EntityState.Detached;
+            throw new ConflictException(CreatePaymentCommandHandler.MensagemDePagamentoAtivoExistente);
+        }
     }
 
     public async Task UpdateAsync(Payment payment)
