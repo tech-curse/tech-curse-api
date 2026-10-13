@@ -27,7 +27,7 @@ public class GetPaymentsByStudentIdQueryHandler : IRequestHandler<GetPaymentsByS
         var searchParams = request.SearchParams;
         var cacheKey = $"{ChavesDeCachePagamento.PorEstudante}id:{studentId}:page:{searchParams.PageNumber}:size:{searchParams.PageSize}:sort:{searchParams.SortBy}_{searchParams.SortDirection}";
 
-        var student = await _studentRepository.GetByIdAsync(studentId);
+        var student = await _studentRepository.GetByIdIncludingDeletedAsync(studentId);
         if (student == null) throw new NotFoundException("Estudante não encontrado.");
 
         await ValidateRoleAcess(student.IdentityUserId);

@@ -8,6 +8,7 @@ public interface IStudentRepository
     Task<(IEnumerable<Student> Items, int TotalCount)> GetPagedAsync(PaginationParamsDto searchParams);
     Task<IEnumerable<Student>> GetAllAsync();
     Task<Student?> GetByIdAsync(int id);
+    Task<Student?> GetByIdIncludingDeletedAsync(int id);
     Task<Student?> GetByEmailAsync(string email);
     Task<IEnumerable<CourseStudentOutputDto>> GetCoursesAsync(Student student);
     Task AddAsync(Student student);

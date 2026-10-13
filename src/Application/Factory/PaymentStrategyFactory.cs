@@ -12,6 +12,9 @@ public class PaymentStrategyFactory
         _strategies = strategies;
     }
 
+    public bool Suporta(PaymentMethodType methodType)
+        => _strategies.Any(s => s.PaymentMethodType == methodType);
+
     public IPaymentStrategy GetStrategy(PaymentMethodType methodType)
     {
         var strategy = _strategies.FirstOrDefault(s => s.PaymentMethodType == methodType);

@@ -215,7 +215,7 @@ A navegação `Payment.Student` é obrigatória, então o EF traduz o `Include` 
 
 Não há lazy loading para salvar de um `Include` esquecido: `Microsoft.EntityFrameworkCore.Proxies` está referenciado, mas `UseLazyLoadingProxies()` nunca é chamado e as navegações não são `virtual`.
 
-**Nada protege isso hoje.** No projeto anterior a esta importação, um teste de integração (`PaymentNavigationTests`) exercitava `GetByIdAsync` e `GetByEnrollmentIdAsync` com aluno ativo e removido; teste unitário com repositório mockado não pega a falha. A nova suíte precisa cobrir esses dois caminhos.
+**O que protege isso:** o teste do `PAG-020` remove o aluno e consulta os pagamentos dele pelas três rotas (por aluno, por id e por matrícula). Teste unitário com repositório mockado não pega a falha. A busca do aluno nas consultas de pagamento usa `IStudentRepository.GetByIdIncludingDeletedAsync`, que ignora o filtro; `GetByIdAsync` continua escondendo aluno removido em todo o resto.
 
 ## Branches
 

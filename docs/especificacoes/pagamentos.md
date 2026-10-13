@@ -72,8 +72,7 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 *Dado* uma matrícula sem pagamento ativo
 *Quando* duas criações para ela chegam ao mesmo tempo
 *Então* uma resposta é `201` e a outra `409`, com a mesma mensagem do `PAG-003`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** o banco tem um índice único parcial (`"IsActive" = true`) que impede o segundo pagamento ativo. A violação, porém, chega como `DbUpdateException`, que vira `500` com a mensagem interna do PostgreSQL (`TRV-004`).
+**Status:** implementado
 
 **PAG-005: Dados inválidos são recusados**
 *Quando* `enrollmentId` ou `amount` é zero ou negativo
@@ -115,8 +114,7 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 **PAG-011: Método de pagamento sem suporte é recusado com 422**
 *Quando* o `type` é `"Pix"` ou `"Boleto"`
 *Então* a resposta é `422`, com `errors.Type` = `["Método de pagamento não suportado."]`, e o pagamento não muda
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** os dois valores passam pela validação (são do enum), mas não há estratégia registrada para eles. A factory lança `NotSupportedException`, e a resposta é `500`, com `"Método de pagamento Pix não suportado."` no `detail`.
+**Status:** implementado
 
 **PAG-012: Gateway lento gera 504**
 *Dado* um gateway que não responde em 30 segundos
@@ -176,8 +174,7 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 *Dado* um aluno removido que tinha pagamentos
 *Quando* um `Admin` chama `GET /Payment/student/{studentId}`, `GET /Payment/{id}` ou `GET /Payment/enrollment/{id}`
 *Então* a resposta é `200`, com os pagamentos
-**Status:** divergente na rota por aluno: correção proposta para a Fase 3
-**Hoje:** por id e por matrícula funciona (as consultas usam `IgnoreQueryFilters()`). Por aluno, o handler procura o aluno com o filtro de removidos ativo e responde `404` `"Estudante não encontrado."`, escondendo o histórico financeiro que a regra 8 garante.
+**Status:** implementado
 
 **PAG-021: Pagamento por id**
 *Quando* o dono ou um `Admin` chama `GET /Payment/{id}` com um id existente
@@ -191,8 +188,7 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 *Então* a resposta é `200`, com os pagamentos dela, do mais recente para o mais antigo
 *E* uma matrícula sem nenhum pagamento devolve `200` com lista vazia
 *E* uma matrícula inexistente devolve `404`, com `detail` = `"Matrícula não encontrada."`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a permissão é verificada pelo aluno do primeiro pagamento. Sem pagamentos, não há de onde tirar o aluno, e a resposta é `404` com `"Matrícula não encontrada ou sem estudante associado."` mesmo para uma matrícula que existe.
+**Status:** implementado
 
 **PAG-023: Consultas refletem as escritas imediatamente**
 *Dado* um aluno que consultou os próprios pagamentos
@@ -204,10 +200,6 @@ Para permitir testar recusas, o gateway simulado decide pelo valor:
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `PAG-004` | Criação concorrente bate no índice único e vira `500` | Traduzir a violação do índice para `409` | Fase 3 |
-| `PAG-011` | `Pix` e `Boleto` geram `500` | `422` com `errors.Type` | Fase 3 |
-| `PAG-020` | Admin não vê, pela rota por aluno, os pagamentos de aluno removido | Consultar o aluno ignorando o filtro de removidos | Fase 3 |
-| `PAG-022` | Matrícula sem pagamentos responde `404` | `200` com lista vazia; `404` só para matrícula inexistente | Fase 3 |
 | `PAG-013` | Processamento concorrente cobra duas vezes | Controle de concorrência no pagamento | Com o gateway real |
 | `PAG-016` | Motivo do estorno é descartado | Guardar e expor | Com o gateway real |
 

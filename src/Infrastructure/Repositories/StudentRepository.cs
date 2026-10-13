@@ -50,6 +50,9 @@ public class StudentRepository : IStudentRepository
     public async Task<Student?> GetByIdAsync(int id)
         => await _context.Students.FindAsync(id);
 
+    public async Task<Student?> GetByIdIncludingDeletedAsync(int id)
+        => await _context.Students.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.StudentId == id);
+
     public async Task<Student?> GetByEmailAsync(string email)
         => await _context.Students.FirstOrDefaultAsync(s => s.Email == email);
 
