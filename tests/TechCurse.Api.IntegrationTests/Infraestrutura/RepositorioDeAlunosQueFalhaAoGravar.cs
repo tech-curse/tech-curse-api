@@ -26,7 +26,5 @@ public sealed class RepositorioDeAlunosQueFalhaAoGravar : IStudentRepository
 
     public Task DeleteAsync(Student student) => throw new NotSupportedException();
 
-    public Task<bool> EmailExistsAsync(string email) => Task.FromResult(false);
-
     public Task<bool> StudentIsActiveAsync(Student student) => throw new NotSupportedException();
 }

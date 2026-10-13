@@ -99,11 +99,6 @@ public class StudentRepository : IStudentRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task<bool> EmailExistsAsync(string email)
-    {
-        return await _context.Students.AnyAsync(s => s.Email == email);
-    }
-
     public async Task<bool> StudentIsActiveAsync(Student student)
     {
         return await _context.Students.Where(s => s.StudentId == student.StudentId && s.IsDeleted == false).AnyAsync();

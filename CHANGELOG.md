@@ -36,6 +36,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - `LICENSE`.
 - `docs/diagram.png`, desatualizado (mostrava SQL Server e Seq); o diagrama em Mermaid do README é a referência.
 - Histórico de versões do projeto anterior (1.x a 3.0.0) neste CHANGELOG.
+- `POST /Student`: criava perfil de aluno para um usuário já existente, situação que não ocorre desde que o registro cria o perfil. Também respondia `409` para usuário inexistente, criava perfil de aluno para um `Instructor` e podia dar um segundo perfil a quem tinha um removido. Agora responde `405` (`ALU-020`).
 - `appsettings.Development.json` e User Secrets (`UserSecretsId`): configuração por ambiente nomeado e uma segunda fonte da verdade ao lado do `.env`.
 
 ### Corrigido

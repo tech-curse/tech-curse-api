@@ -430,39 +430,6 @@
           "response": []
         },
         {
-          "name": "Criar",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/tech-curse/Student",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "tech-curse",
-                "Student"
-              ]
-            },
-            "description": "Somente Admin.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Aluno Exemplo\",\n  \"email\": \"aluno@techcurse.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
           "name": "Obter por id",
           "request": {
             "method": "GET",
