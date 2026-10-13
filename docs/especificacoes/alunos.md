@@ -79,8 +79,7 @@ Rotas sob `/tech-curse/Student`.
 **ALU-008: Listagem tem ordem estável**
 *Quando* um `Admin` percorre as páginas de `GET /Student`
 *Então* os alunos vêm ordenados pelo id (ou por `SortBy` = `nome` ou `datacadastro`, na direção de `SortDirection`), e nenhum aluno se repete nem some entre páginas
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** a consulta não tem nenhuma ordenação; `SortBy` e `SortDirection` são ignorados. Sem `ORDER BY`, o PostgreSQL não garante a ordem, e a mesma pessoa pode aparecer em duas páginas enquanto outra não aparece em nenhuma.
+**Status:** implementado
 
 **ALU-009: Só Admin lista alunos**
 *Quando* um `Student` ou um `Instructor` chama `GET /Student`
@@ -163,7 +162,6 @@ Rotas sob `/tech-curse/Student`.
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `ALU-008` | Listagem sem ordenação: alunos repetidos ou omitidos entre páginas | Ordem por id, ou por `nome` / `datacadastro` | Fase 3 |
 | `ALU-020` | `POST /Student` sem uso e com falhas próprias | Remover o endpoint | Fase 3 |
 
 ## Fora de escopo

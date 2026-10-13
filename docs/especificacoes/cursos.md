@@ -87,8 +87,7 @@ Ordenações aceitas em `SortBy` (sem diferença entre maiúsculas e minúsculas
 - `Descricao`: `"A descrição é obrigatória."`
 - `Categoria`: `"A categoria é obrigatória."` / `"A categoria deve ter no máximo 50 caracteres."`
 - `CargaHoraria`: `"A carga horária deve ser maior que zero."`
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** na **criação**, a categoria não tem limite de tamanho; só a edição limita a 50 caracteres. Um curso pode ser criado com uma categoria que depois impede a edição.
+**Status:** implementado
 
 ### Edição
 
@@ -150,9 +149,7 @@ Ordenações aceitas em `SortBy` (sem diferença entre maiúsculas e minúsculas
 
 ## Divergências
 
-| Cenário | Hoje | Proposta | Quando |
-| --- | --- | --- | --- |
-| `CUR-009` | Criação aceita categoria de qualquer tamanho; edição limita a 50 | Limite de 50 também na criação | Fase 3 |
+Nenhuma: o comportamento atual segue esta especificação.
 
 ## Fora de escopo
 
