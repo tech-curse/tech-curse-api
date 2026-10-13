@@ -15,8 +15,6 @@ public class TokenService : ITokenService
 {
     private const int TamanhoDoRefreshTokenEmBytes = 64;
 
-    private const int TamanhoDoHashEmBytes = 32;
-
     private const int DiasDeValidadeDoRefreshTokenPadrao = 7;
 
     private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
@@ -72,27 +70,6 @@ public class TokenService : ITokenService
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
 
         return Convert.ToBase64String(hash);
-    }
-
-    public bool RefreshTokenMatches(string refreshToken, string? storedHash)
-    {
-        if (string.IsNullOrEmpty(refreshToken) || string.IsNullOrEmpty(storedHash))
-        {
-            return false;
-        }
-
-        Span<byte> hashPersistido = stackalloc byte[TamanhoDoHashEmBytes];
-
-        if (!Convert.TryFromBase64String(storedHash, hashPersistido, out var bytesEscritos)
-            || bytesEscritos != TamanhoDoHashEmBytes)
-        {
-            return false;
-        }
-
-        Span<byte> hashRecebido = stackalloc byte[TamanhoDoHashEmBytes];
-        SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken), hashRecebido);
-
-        return CryptographicOperations.FixedTimeEquals(hashRecebido, hashPersistido);
     }
 
     public DateTime GetRefreshTokenExpiration()

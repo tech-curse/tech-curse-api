@@ -1,23 +1,19 @@
-using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using TechCurse.Application.DTOs;
 using TechCurse.Application.Interfaces;
 using TechCurse.Domain.Entities;
 using TechCurse.Domain.Enums;
 using TechCurse.Domain.Exceptions;
+using TechCurse.Infrastructure.Data;
+using TechCurse.Infrastructure.Identity.Sessoes;
 
 namespace TechCurse.Infrastructure.Identity;
 
 public class AuthService : IAuthService
 {
-    private const string ProvedorDeLogin = "JWTApp";
-
-    private const string NomeDoRefreshToken = "RefreshToken";
-
-    private const string NomeDaExpiracaoDoRefreshToken = "RefreshTokenExpiry";
-
     private const string MensagemDeRefreshInvalido = "Refresh Token inválido ou expirado.";
 
     private const string MensagemDeCredenciaisInvalidas = "E-mail ou senha incorretos.";
@@ -30,13 +26,15 @@ public class AuthService : IAuthService
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly ITokenService _tokenService;
     private readonly IStudentRepository _studentRepository;
+    private readonly TechCurseContext _context;
 
-    public AuthService(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, ITokenService tokenService, IStudentRepository studentRepository)
+    public AuthService(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, ITokenService tokenService, IStudentRepository studentRepository, TechCurseContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
         _studentRepository = studentRepository;
+        _context = context;
     }
 
     public async Task RegisterAsync(RegisterInputDto input)
@@ -170,7 +168,7 @@ public class AuthService : IAuthService
         var roles = await _userManager.GetRolesAsync(user);
 
         var tokenProcess = _tokenService.GenerateJwtToken(user, roles);
-        var refreshToken = await EmitirRefreshTokenAsync(user);
+        var refreshToken = await AbrirSessaoAsync(user.Id);
 
         return new AuthOutputDto(tokenProcess.AccessToken, refreshToken, tokenProcess.ExpiresAt);
     }
@@ -178,78 +176,116 @@ public class AuthService : IAuthService
     public async Task<AuthOutputDto?> RefreshAsync(RefreshTokenInputDto input)
     {
         var principal = _tokenService.GetPrincipalFromExpiredToken(input.AccessToken);
-        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedException(MensagemDeRefreshInvalido);
 
-        if (userId == null)
+        var hash = _tokenService.HashRefreshToken(input.RefreshToken);
+        var token = await _context.RefreshTokensDeSessao
+            .Include(t => t.Sessao)
+            .SingleOrDefaultAsync(t => t.Hash == hash);
+
+        if (token is null || token.Sessao.UsuarioId != userId || token.Sessao.RevogadaEm is not null)
             throw new UnauthorizedException(MensagemDeRefreshInvalido);
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            throw new UnauthorizedException(MensagemDeRefreshInvalido);
+        if (token.UsadoEm is not null)
+            await RevogarSessaoENegarAsync(token.SessaoId, MotivoDaRevogacao.Reuso);
 
-        var hashPersistido = await _userManager.GetAuthenticationTokenAsync(
-            user, ProvedorDeLogin, NomeDoRefreshToken);
+        var user = await _userManager.FindByIdAsync(userId)
+            ?? throw new UnauthorizedException(MensagemDeRefreshInvalido);
 
-        if (await _userManager.IsLockedOutAsync(user) || !await RefreshTokenEstaVigenteAsync(user))
+        if (await _userManager.IsLockedOutAsync(user))
         {
-            await RevogarRefreshTokenAsync(user);
-
+            await RevogarSessoesDoUsuarioAsync(userId, MotivoDaRevogacao.ContaBloqueada);
             throw new UnauthorizedException(MensagemDeRefreshInvalido);
         }
 
-        if (!_tokenService.RefreshTokenMatches(input.RefreshToken, hashPersistido))
-        {
-            throw new UnauthorizedException(MensagemDeRefreshInvalido);
-        }
+        var agora = DateTime.UtcNow;
+        if (token.ExpiraEm <= agora)
+            await RevogarSessaoENegarAsync(token.SessaoId, MotivoDaRevogacao.Expirada);
+
+        var marcados = await _context.RefreshTokensDeSessao
+            .Where(t => t.Id == token.Id && t.UsadoEm == null)
+            .ExecuteUpdateAsync(t => t.SetProperty(x => x.UsadoEm, agora));
+
+        if (marcados == 0)
+            await RevogarSessaoENegarAsync(token.SessaoId, MotivoDaRevogacao.Reuso);
+
+        await _context.RefreshTokensDeSessao
+            .Where(t => t.SessaoId == token.SessaoId && t.ExpiraEm < agora)
+            .ExecuteDeleteAsync();
 
         var roles = await _userManager.GetRolesAsync(user);
-
         var tokenProcess = _tokenService.GenerateJwtToken(user, roles);
-        var refreshToken = await EmitirRefreshTokenAsync(user);
+        var refreshToken = await EmitirRefreshTokenAsync(token.SessaoId);
 
         return new AuthOutputDto(tokenProcess.AccessToken, refreshToken, tokenProcess.ExpiresAt);
     }
 
-    private async Task<string> EmitirRefreshTokenAsync(IdentityUser user)
+    public async Task LogoutAsync(string refreshToken)
+    {
+        if (string.IsNullOrEmpty(refreshToken))
+            return;
+
+        var hash = _tokenService.HashRefreshToken(refreshToken);
+        var sessaoId = await _context.RefreshTokensDeSessao
+            .Where(t => t.Hash == hash)
+            .Select(t => (Guid?)t.SessaoId)
+            .SingleOrDefaultAsync();
+
+        if (sessaoId is not null)
+            await RevogarSessaoAsync(sessaoId.Value, MotivoDaRevogacao.Logout);
+    }
+
+    private async Task<string> AbrirSessaoAsync(string usuarioId)
+    {
+        var agora = DateTime.UtcNow;
+
+        await _context.SessoesDeAutenticacao
+            .Where(s => s.UsuarioId == usuarioId
+                && (s.RevogadaEm != null || s.RefreshTokens.All(t => t.ExpiraEm <= agora)))
+            .ExecuteDeleteAsync();
+
+        var sessao = new SessaoDeAutenticacao { Id = Guid.NewGuid(), UsuarioId = usuarioId, CriadaEm = agora };
+        _context.SessoesDeAutenticacao.Add(sessao);
+        await _context.SaveChangesAsync();
+
+        return await EmitirRefreshTokenAsync(sessao.Id);
+    }
+
+    private async Task<string> EmitirRefreshTokenAsync(Guid sessaoId)
     {
         var refreshToken = _tokenService.GenerateRefreshToken();
-        var expiraEm = _tokenService.GetRefreshTokenExpiration();
 
-        await _userManager.SetAuthenticationTokenAsync(
-            user, ProvedorDeLogin, NomeDoRefreshToken, _tokenService.HashRefreshToken(refreshToken));
-
-        await _userManager.SetAuthenticationTokenAsync(
-            user, ProvedorDeLogin, NomeDaExpiracaoDoRefreshToken,
-            expiraEm.ToString("O", CultureInfo.InvariantCulture));
+        _context.RefreshTokensDeSessao.Add(new RefreshTokenDaSessao
+        {
+            Id = Guid.NewGuid(),
+            SessaoId = sessaoId,
+            Hash = _tokenService.HashRefreshToken(refreshToken),
+            CriadoEm = DateTime.UtcNow,
+            ExpiraEm = _tokenService.GetRefreshTokenExpiration()
+        });
+        await _context.SaveChangesAsync();
 
         return refreshToken;
     }
 
-    private async Task<bool> RefreshTokenEstaVigenteAsync(IdentityUser user)
+    private async Task RevogarSessaoENegarAsync(Guid sessaoId, string motivo)
     {
-        var expiracaoPersistida = await _userManager.GetAuthenticationTokenAsync(
-            user, ProvedorDeLogin, NomeDaExpiracaoDoRefreshToken);
-
-        if (string.IsNullOrEmpty(expiracaoPersistida))
-        {
-            return false;
-        }
-
-        if (!DateTimeOffset.TryParse(
-                expiracaoPersistida,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind,
-                out var expiraEm))
-        {
-            return false;
-        }
-
-        return expiraEm > DateTimeOffset.UtcNow;
+        await RevogarSessaoAsync(sessaoId, motivo);
+        throw new UnauthorizedException(MensagemDeRefreshInvalido);
     }
 
-    private async Task RevogarRefreshTokenAsync(IdentityUser user)
-    {
-        await _userManager.RemoveAuthenticationTokenAsync(user, ProvedorDeLogin, NomeDoRefreshToken);
-        await _userManager.RemoveAuthenticationTokenAsync(user, ProvedorDeLogin, NomeDaExpiracaoDoRefreshToken);
-    }
+    private Task RevogarSessaoAsync(Guid sessaoId, string motivo) =>
+        _context.SessoesDeAutenticacao
+            .Where(s => s.Id == sessaoId && s.RevogadaEm == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.RevogadaEm, DateTime.UtcNow)
+                .SetProperty(x => x.MotivoDaRevogacao, motivo));
+
+    private Task RevogarSessoesDoUsuarioAsync(string usuarioId, string motivo) =>
+        _context.SessoesDeAutenticacao
+            .Where(s => s.UsuarioId == usuarioId && s.RevogadaEm == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.RevogadaEm, DateTime.UtcNow)
+                .SetProperty(x => x.MotivoDaRevogacao, motivo));
 }

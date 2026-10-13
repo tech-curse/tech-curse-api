@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TechCurse.Domain.Entities;
+using TechCurse.Infrastructure.Identity.Sessoes;
 
 namespace TechCurse.Infrastructure.Data;
 
@@ -19,6 +20,9 @@ public class TechCurseContext : IdentityDbContext<IdentityUser>, IDataProtection
     public DbSet<Payment> Payments { get; set; } = null!;
 
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
+
+    public DbSet<SessaoDeAutenticacao> SessoesDeAutenticacao { get; set; } = null!;
+    public DbSet<RefreshTokenDaSessao> RefreshTokensDeSessao { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

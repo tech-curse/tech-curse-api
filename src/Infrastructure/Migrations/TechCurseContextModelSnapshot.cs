@@ -17,7 +17,7 @@ namespace TechCurse.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -391,6 +391,67 @@ namespace TechCurse.Infrastructure.Migrations
                     b.ToTable("Students");
                 });
 
+            modelBuilder.Entity("TechCurse.Infrastructure.Identity.Sessoes.RefreshTokenDaSessao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("SessaoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UsadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Hash")
+                        .IsUnique();
+
+                    b.HasIndex("SessaoId");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("TechCurse.Infrastructure.Identity.Sessoes.SessaoDeAutenticacao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CriadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MotivoDaRevogacao")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("RevogadaEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("SessoesDeAutenticacao", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -491,6 +552,26 @@ namespace TechCurse.Infrastructure.Migrations
                     b.Navigation("IdentityUser");
                 });
 
+            modelBuilder.Entity("TechCurse.Infrastructure.Identity.Sessoes.RefreshTokenDaSessao", b =>
+                {
+                    b.HasOne("TechCurse.Infrastructure.Identity.Sessoes.SessaoDeAutenticacao", "Sessao")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("SessaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sessao");
+                });
+
+            modelBuilder.Entity("TechCurse.Infrastructure.Identity.Sessoes.SessaoDeAutenticacao", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TechCurse.Domain.Entities.Course", b =>
                 {
                     b.Navigation("Enrollments");
@@ -499,6 +580,11 @@ namespace TechCurse.Infrastructure.Migrations
             modelBuilder.Entity("TechCurse.Domain.Entities.Student", b =>
                 {
                     b.Navigation("Enrollments");
+                });
+
+            modelBuilder.Entity("TechCurse.Infrastructure.Identity.Sessoes.SessaoDeAutenticacao", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }
