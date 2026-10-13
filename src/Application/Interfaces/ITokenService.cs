@@ -12,8 +12,6 @@ public interface ITokenService
 
     string HashRefreshToken(string refreshToken);
 
-    bool RefreshTokenMatches(string refreshToken, string? storedHash);
-
     DateTime GetRefreshTokenExpiration();
 
     ClaimsPrincipal GetPrincipalFromExpiredToken(string token);

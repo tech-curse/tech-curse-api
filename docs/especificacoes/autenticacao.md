@@ -13,8 +13,8 @@ Permitir que uma pessoa crie a própria conta de aluno, entre no sistema e mante
 5. Política de senha: de 12 a 128 caracteres, com pelo menos uma letra minúscula, uma maiúscula, um dígito e um caractere que não seja letra nem dígito. A política vale ao definir a senha: quem já tinha uma senha mais curta continua entrando com ela. As mensagens de erro do Identity são em português (`DescritorDeErrosDoIdentity`).
 6. O access token vale 2 horas a partir da emissão. Não há tolerância de relógio na validação.
 7. O refresh token vale `Jwt:RefreshTokenDays` dias (padrão `7`). Cada uso gera um novo par e invalida o refresh token anterior (rotação).
-8. Cada usuário tem um único refresh token válido por vez: um novo login invalida o anterior.
-9. O banco guarda apenas o hash SHA-256 do refresh token. O valor em texto puro só existe na resposta HTTP.
+8. Cada login abre uma **sessão**. Um usuário pode ter várias sessões ao mesmo tempo (celular e computador), e cada uma é encerrada sem afetar as outras. Um login apaga as sessões já revogadas ou vencidas do próprio usuário.
+9. O banco guarda apenas o hash SHA-256 do refresh token (tabela `RefreshTokens`, ligada à sessão em `SessoesDeAutenticacao`). O valor em texto puro só existe na resposta HTTP.
 10. Falhas de autenticação não revelam se um e-mail está cadastrado.
 11. Os endpoints de `/Auth` têm um limite de requisições próprio, mais restrito que o global (ver `AUTH-037`).
 
@@ -28,6 +28,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 | `POST /users` | `Admin` | `{ name, email, role, password, confirmPassword }` | `201` `{ "mensagem": "Usuário criado com sucesso." }` |
 | `POST /login` | público | `{ email, password }` | `200` `{ accessToken, refreshToken, expiresAt }` |
 | `POST /refresh` | público | `{ accessToken, refreshToken }` | `200` `{ accessToken, refreshToken, expiresAt }` |
+| `POST /logout` | público | `{ refreshToken }` | `204`, sempre |
 
 - `role` é texto: `"Admin"`, `"Instructor"` ou `"Student"`.
 - `expiresAt` é o instante de expiração do **access token**, em UTC (ISO-8601).
@@ -200,7 +201,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *Dado* um refresh token emitido há mais de `Jwt:RefreshTokenDays` dias
 *Quando* o cliente tenta usá-lo
 *Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
-*E* o refresh token do usuário é apagado
+*E* a sessão daquele token é revogada
 **Status:** implementado
 
 **AUTH-026: Refresh token errado é recusado**
@@ -223,37 +224,39 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 *Dado* um usuário logado num dispositivo
 *Quando* ele faz login em outro dispositivo
 *Então* o refresh token do primeiro dispositivo deixa de valer (`401`)
-**Status:** implementado (a Fase 5 deve permitir várias sessões por usuário; ver `AUTH-031`)
+**Status:** removido na Fase 5. Um usuário passa a ter várias sessões ao mesmo tempo (`AUTH-031`).
 
 **AUTH-030: O refresh token não é guardado em texto puro**
 *Dado* um login bem-sucedido
-*Então* o valor guardado no banco para o refresh token é o hash SHA-256 (em Base64) do token devolvido, e não o token em si
+*Então* o valor guardado no banco (`RefreshTokens.Hash`) é o hash SHA-256 (em Base64) do token devolvido, e não o token em si
 **Status:** implementado
 
 **AUTH-039: Conta bloqueada não renova a sessão**
 *Dado* um usuário com a conta bloqueada, por exemplo um aluno removido por um `Admin` (`ALU-014`)
 *Quando* o cliente dele envia `POST /refresh` com um par de tokens que era válido
 *Então* a resposta é `401`, com `detail` = `"Refresh Token inválido ou expirado."`
-*E* o refresh token dele é apagado
+*E* todas as sessões dele são revogadas
 **Status:** implementado
 
-### Sessão: evoluções planejadas
+### Sessões
 
 **AUTH-031: Várias sessões por usuário, revogáveis uma a uma**
 *Dado* um usuário logado no celular e no computador
 *Então* as duas sessões funcionam ao mesmo tempo, e encerrar uma não afeta a outra
-**Status:** planejado (Fase 5)
+**Status:** implementado
 
 **AUTH-032: Logout revoga a sessão no servidor**
 *Quando* o usuário sai
-*Então* o refresh token daquela sessão deixa de valer imediatamente
-**Status:** planejado (Fase 5). Hoje o "sair" do web apaga só os tokens do navegador; o refresh token continua válido até vencer.
+*Então* o cliente envia `POST /logout` com o refresh token, e a sessão daquele token deixa de valer imediatamente
+*E* a resposta é `204` mesmo para um token desconhecido ou já encerrado, para não revelar se ele existe
+**Status:** implementado na API. O "sair" do web passa a chamar o logout em `WEB-AUTH-020`.
 
 **AUTH-033: Reuso de refresh token revoga a sessão inteira**
 *Dado* um refresh token já trocado por um novo par
 *Quando* alguém o reapresenta, o que indica roubo
-*Então* a sessão inteira daquele token é revogada, inclusive o par mais novo
-**Status:** planejado (Fase 5)
+*Então* a resposta é `401`, e a sessão inteira daquele token é revogada, inclusive o par mais novo
+*E* duas renovações simultâneas com o mesmo token não geram duas sessões válidas: marcar o token como usado é condicional (`UPDATE ... WHERE UsadoEm IS NULL`), e quem chega depois é tratado como reuso
+**Status:** implementado
 
 **AUTH-034: Refresh token entregue em cookie HttpOnly e access token mais curto**
 *Então* o refresh token trafega só num cookie `HttpOnly`, `Secure` e `SameSite`, fora do alcance do JavaScript, e o access token passa a valer minutos, não horas

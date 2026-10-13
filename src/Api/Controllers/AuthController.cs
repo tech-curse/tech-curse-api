@@ -85,4 +85,18 @@ public class AuthController : ControllerBase
 
         return Ok(refreshResult);
     }
+
+    [HttpPost("logout")]
+    [SwaggerOperation(
+        Summary = "Encerra a sessão do refresh token informado.",
+        Description = "**Acesso:** Público. Responde 204 mesmo para um token desconhecido, para não revelar se ele existe."
+    )]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "Sessão encerrada.")]
+    [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Limite de requisições de autenticação excedido.", typeof(ProblemDetails))]
+    public async Task<IActionResult> Logout([FromBody] LogoutInputDto input)
+    {
+        await _authService.LogoutAsync(input.RefreshToken);
+
+        return NoContent();
+    }
 }

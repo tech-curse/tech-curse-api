@@ -8,6 +8,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- `POST /Auth/logout`: encerra a sessão do refresh token informado e responde `204` sempre (`AUTH-032`).
 - Base de código importada: cursos, estudantes, matrículas e pagamentos, com autenticação JWT sobre ASP.NET Core Identity, PostgreSQL 17 e Redis.
 - `.env.example` com todas as variáveis que a API lê: segredos sem valor, o resto com um valor de exemplo de desenvolvimento.
 - `scripts/com-env.sh` e `scripts/com-env.ps1`: carregam o `.env` e executam a API (ou outro comando, como `dotnet ef`) com essas variáveis.
@@ -61,6 +62,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Segurança
 
+- Sessões de autenticação em tabelas próprias (`SessoesDeAutenticacao` e `RefreshTokens`), no lugar do `AspNetUserTokens`. Um usuário pode ficar logado em vários aparelhos, e encerrar um não afeta os outros (`AUTH-031`); antes, um novo login derrubava o anterior. A reapresentação de um refresh token já usado revoga a sessão inteira, inclusive o token mais novo (`AUTH-033`).
 - Política de senha: de 12 a 128 caracteres, mantendo minúscula, maiúscula, número e símbolo; antes o mínimo era 8. Vale para senhas novas: contas existentes continuam entrando (`AUTH-004`).
 - Cinco senhas erradas seguidas bloqueiam a conta por 15 minutos, com a mesma resposta genérica do login errado. O bloqueio estava configurado no Identity, mas o login não o aplicava (`AUTH-018`).
 - Erro inesperado responde `500` com `"Ocorreu um erro inesperado. Informe o código de correlação ao suporte."`; antes o `detail` trazia a mensagem interna da exceção (PostgreSQL, Redis, JWT). O log da exceção passa a carregar o mesmo `CorrelationId` da resposta (`TRV-004`).
