@@ -203,6 +203,7 @@ As escritas de pagamento exigem o header **`Idempotency-Key`**; sem ele a respos
 | --- | --- |
 | Refresh token | Persistido como hash SHA-256, comparado em tempo constante, com rotação a cada uso |
 | Rate limiting | Limite global por usuário ou IP e política mais restrita na autenticação; rejeição em `ProblemDetails` 429 com `Retry-After` |
+| Senha | De 12 a 128 caracteres, com minúscula, maiúscula, número e símbolo; mensagens de erro em português |
 | Lockout | 5 senhas erradas seguidas bloqueiam a conta por 15 minutos, com a mesma resposta do login errado; somado ao limite de requisições da autenticação |
 | Autorização | RBAC por papel no controller; regras de posse ("é o próprio aluno") nos handlers |
 | Data Protection | Chaveiro persistido no banco, sem chaves efêmeras no sistema de arquivos |

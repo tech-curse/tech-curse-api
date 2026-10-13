@@ -24,11 +24,7 @@ public static class IdentityAuthenticationSetup
 
         services.AddIdentityCore<IdentityUser>(options =>
         {
-            options.Password.RequireDigit = true;
-            options.Password.RequiredLength = 8;
-            options.Password.RequireNonAlphanumeric = true;
-            options.Password.RequireUppercase = true;
-            options.Password.RequireLowercase = true;
+            PoliticaDeSenha.Aplicar(options.Password);
 
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.Lockout.MaxFailedAccessAttempts = 5;
@@ -38,6 +34,8 @@ public static class IdentityAuthenticationSetup
         })
         .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<TechCurseContext>()
+        .AddErrorDescriber<DescritorDeErrosDoIdentity>()
+        .AddPasswordValidator<ValidadorDeComprimentoMaximoDaSenha>()
         .AddSignInManager();
 
         var jwtIssuer = configuration["Jwt:Issuer"];

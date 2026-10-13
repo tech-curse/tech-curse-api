@@ -26,6 +26,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- As mensagens de erro do Identity (senha, e-mail duplicado ou inválido) passam a vir em português; antes vinham em inglês e apareciam assim no formulário do web (`AUTH-004`, `AUTH-005`, `AUTH-007`).
 - No `SIGTERM`, a API espera até 25 segundos pelas requisições em andamento e termina com código `0`; o compose espera 30 segundos antes de matá-la (`TRV-036`).
 
 - Matrícula responde `201 Created`; antes respondia `202 Accepted` para uma matrícula já gravada (`MAT-001`).
@@ -60,6 +61,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Segurança
 
+- Política de senha: de 12 a 128 caracteres, mantendo minúscula, maiúscula, número e símbolo; antes o mínimo era 8. Vale para senhas novas: contas existentes continuam entrando (`AUTH-004`).
 - Cinco senhas erradas seguidas bloqueiam a conta por 15 minutos, com a mesma resposta genérica do login errado. O bloqueio estava configurado no Identity, mas o login não o aplicava (`AUTH-018`).
 - Erro inesperado responde `500` com `"Ocorreu um erro inesperado. Informe o código de correlação ao suporte."`; antes o `detail` trazia a mensagem interna da exceção (PostgreSQL, Redis, JWT). O log da exceção passa a carregar o mesmo `CorrelationId` da resposta (`TRV-004`).
 - O login responde igual, `401` com `"E-mail ou senha incorretos."`, para e-mail inexistente e para senha errada. Antes, a senha errada respondia `"Usuário não autenticado."`, o que revelava quais e-mails estão cadastrados; o Swagger também documentava um `400` que não existe (`AUTH-016`).
