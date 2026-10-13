@@ -10,7 +10,7 @@ Permitir que uma pessoa crie a própria conta de aluno, entre no sistema e mante
 2. O registro público cria sempre um `Student`. Só um `Admin` cria usuários com outros papéis.
 3. Todo usuário `Student` tem um perfil de estudante, criado junto com o usuário. Se o perfil não puder ser criado, o usuário também não fica criado.
 4. O e-mail identifica o usuário no login e é único no sistema.
-5. Política de senha: no mínimo 8 caracteres, com pelo menos uma letra minúscula, uma maiúscula, um dígito e um caractere que não seja letra nem dígito.
+5. Política de senha: de 12 a 128 caracteres, com pelo menos uma letra minúscula, uma maiúscula, um dígito e um caractere que não seja letra nem dígito. A política vale ao definir a senha: quem já tinha uma senha mais curta continua entrando com ela. As mensagens de erro do Identity são em português (`DescritorDeErrosDoIdentity`).
 6. O access token vale 2 horas a partir da emissão. Não há tolerância de relógio na validação.
 7. O refresh token vale `Jwt:RefreshTokenDays` dias (padrão `7`). Cada uso gera um novo par e invalida o refresh token anterior (rotação).
 8. Cada usuário tem um único refresh token válido por vez: um novo login invalida o anterior.
@@ -60,13 +60,19 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 **AUTH-004: Senha fora da política é recusada com o motivo**
 *Quando* a senha não atende à política (regra 5)
-*Então* a resposta é `422`, e `errors` traz um código para cada exigência descumprida: `PasswordTooShort`, `PasswordRequiresLower`, `PasswordRequiresUpper`, `PasswordRequiresDigit` ou `PasswordRequiresNonAlphanumeric`
+*Então* a resposta é `422`, e `errors` traz um código para cada exigência descumprida, com a mensagem:
+- `PasswordTooShort`: `"A senha deve ter no mínimo 12 caracteres."`
+- `PasswordTooLong`: `"A senha deve ter no máximo 128 caracteres."`
+- `PasswordRequiresLower`: `"A senha deve ter pelo menos uma letra minúscula."`
+- `PasswordRequiresUpper`: `"A senha deve ter pelo menos uma letra maiúscula."`
+- `PasswordRequiresDigit`: `"A senha deve ter pelo menos um número."`
+- `PasswordRequiresNonAlphanumeric`: `"A senha deve ter pelo menos um símbolo (caractere que não é letra nem número)."`
 **Status:** implementado
 
 **AUTH-005: E-mail de usuário existente não pode ser usado de novo**
 *Dado* um usuário já cadastrado com um e-mail
 *Quando* alguém tenta registrar o mesmo e-mail
-*Então* a resposta é `422`, com o código `DuplicateEmail` em `errors`
+*Então* a resposta é `422`, com `errors.DuplicateEmail` = `["Este e-mail já está em uso."]`
 **Status:** implementado
 
 **AUTH-006: Perfil de estudante antigo sem usuário bloqueia o e-mail**
@@ -74,7 +80,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 **AUTH-007: E-mail em formato inválido é recusado**
 *Quando* o e-mail não tem formato de e-mail
-*Então* a resposta é `422`, com o código `InvalidEmail` em `errors`
+*Então* a resposta é `422`, com `errors.InvalidEmail` = `["Informe um e-mail válido."]`
 **Status:** implementado
 
 **AUTH-008: Corpo incompleto ou malformado é rejeitado antes da regra de negócio**

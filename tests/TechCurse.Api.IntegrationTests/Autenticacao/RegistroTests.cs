@@ -71,19 +71,33 @@ public sealed class RegistroTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(
         Assert.False(await UsuarioExisteAsync(email));
     }
 
+    public static TheoryData<string, string, string> SenhasForaDaPolitica => new()
+    {
+        { "Senh@Forte1", "PasswordTooShort", "A senha deve ter no mínimo 12 caracteres." },
+        { "SENHA@FORTE12", "PasswordRequiresLower", "A senha deve ter pelo menos uma letra minúscula." },
+        { "senha@forte12", "PasswordRequiresUpper", "A senha deve ter pelo menos uma letra maiúscula." },
+        { "Senha@Forte!!", "PasswordRequiresDigit", "A senha deve ter pelo menos um número." },
+        { "SenhaForte123", "PasswordRequiresNonAlphanumeric", "A senha deve ter pelo menos um símbolo (caractere que não é letra nem número)." },
+        { "Aa1@" + new string('x', 125), "PasswordTooLong", "A senha deve ter no máximo 128 caracteres." }
+    };
+
     [Theory]
     [Trait("Especificacao", "AUTH-004")]
-    [InlineData("Ab1@", "PasswordTooShort")]
-    [InlineData("SENHA@FORTE1", "PasswordRequiresLower")]
-    [InlineData("senha@forte1", "PasswordRequiresUpper")]
-    [InlineData("Senha@Forte", "PasswordRequiresDigit")]
-    [InlineData("SenhaForte1", "PasswordRequiresNonAlphanumeric")]
-    public async Task Senha_fora_da_politica_e_recusada_com_o_motivo(string senha, string codigo)
+    [MemberData(nameof(SenhasForaDaPolitica))]
+    public async Task Senha_fora_da_politica_e_recusada_com_o_motivo(string senha, string codigo, string mensagem)
     {
         var resposta = await RegistrarAsync(Corpo(senha: senha));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
-        Assert.True((await ErrosAsync(resposta)).TryGetProperty(codigo, out _));
+        Assert.Equal([mensagem], (await ErrosAsync(resposta)).GetProperty(codigo).EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact]
+    [Trait("Especificacao", "AUTH-004")]
+    public async Task Senha_de_12_a_128_caracteres_com_as_quatro_classes_e_aceita()
+    {
+        Assert.Equal(HttpStatusCode.Created, (await RegistrarAsync(Corpo(senha: "Aa1@aaaaaaaa"))).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await RegistrarAsync(Corpo(senha: "Aa1@" + new string('x', 124)))).StatusCode);
     }
 
     [Fact]
@@ -97,7 +111,7 @@ public sealed class RegistroTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
         var erros = await ErrosAsync(resposta);
-        Assert.True(erros.TryGetProperty("DuplicateEmail", out _));
+        Assert.Equal("Este e-mail já está em uso.", erros.GetProperty("DuplicateEmail")[0].GetString());
         Assert.False(erros.TryGetProperty("DuplicateUserName", out _));
     }
 
@@ -108,7 +122,7 @@ public sealed class RegistroTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(
         var resposta = await RegistrarAsync(Corpo("nao-e-um-email"));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
-        Assert.True((await ErrosAsync(resposta)).TryGetProperty("InvalidEmail", out _));
+        Assert.Equal("Informe um e-mail válido.", (await ErrosAsync(resposta)).GetProperty("InvalidEmail")[0].GetString());
     }
 
     [Fact]
