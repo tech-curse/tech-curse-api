@@ -161,7 +161,7 @@ public class AuthService : IAuthService
             throw new UnauthorizedException(MensagemDeCredenciaisInvalidas);
         }
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, input.Password, lockoutOnFailure: false);
+        var result = await _signInManager.CheckPasswordSignInAsync(user, input.Password, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
             throw new UnauthorizedException(MensagemDeCredenciaisInvalidas);

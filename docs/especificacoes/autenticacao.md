@@ -146,9 +146,10 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 **AUTH-018: Tentativas erradas seguidas bloqueiam a conta temporariamente**
 *Dado* um usuário que errou a senha 5 vezes seguidas
 *Quando* ele tenta de novo, mesmo com a senha certa, antes de 15 minutos
-*Então* o login é recusado
-**Status:** divergente: planejado para a Fase 5 (endurecimento do login)
-**Hoje:** o Identity está configurado com 5 tentativas e 15 minutos, mas o login chama `CheckPasswordSignInAsync` com `lockoutOnFailure: false`, então a conta nunca é bloqueada. O rate limiting (`AUTH-037`) é a única barreira contra força bruta.
+*Então* o login é recusado com a mesma resposta do `AUTH-016` (`401`, `"E-mail ou senha incorretos."`), para não revelar que a conta existe
+*E* passados os 15 minutos, a senha certa volta a funcionar
+*E* um login certo zera a contagem: só erros **seguidos** bloqueiam
+**Status:** implementado. Quem conhece o e-mail de alguém consegue bloquear a conta dela por 15 minutos; o limite por cliente (`AUTH-037`) reduz o ritmo, e a troca é aceita porque protege a senha contra tentativa e erro.
 
 ### Uso do access token
 
@@ -281,9 +282,7 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 ## Divergências
 
-| Cenário | Hoje | Proposta | Quando |
-| --- | --- | --- | --- |
-| `AUTH-018` | Lockout configurado, mas nunca aplicado | Aplicar | Fase 5 |
+Nenhuma: o comportamento atual segue esta especificação.
 
 ## Fora de escopo
 
