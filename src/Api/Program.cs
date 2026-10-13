@@ -9,6 +9,8 @@ using TechCurse.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<HostOptions>(opcoes => opcoes.ShutdownTimeout = EncerramentoSetup.TempoMaximo);
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 

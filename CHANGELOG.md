@@ -18,7 +18,14 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Estrutura de testes: integração com `WebApplicationFactory` e Testcontainers (PostgreSQL 17 e Redis 7 reais) e testes unitários, em xUnit v3 sobre o Microsoft.Testing.Platform. Primeiros testes: health checks (`TRV-020` a `TRV-022`) e elegibilidade de pagamento (`PAG-008`).
 - Cobertura de código e relatório de rastreabilidade entre especificação e testes no resumo de cada execução do CI.
 
+- Imagem de contêiner da API (`Dockerfile`): build multi-stage, runtime `chiseled-extra` sem shell e com ICU, usuário não root (`app`) e healthcheck pela sonda `TechCurse.Sonda`, que consulta `/health/ready`.
+- `compose.yaml` de desenvolvimento com PostgreSQL 17, Redis 7 e a API, portas só em `127.0.0.1`.
+- Job `imagem` no CI: constrói a imagem, sobe o compose e verifica usuário não root, health checks, login e encerramento limpo (`scripts/verificar-conteiner.sh`).
+- Dependabot acompanha as imagens do `Dockerfile` e do `compose.yaml`.
+
 ### Alterado
+
+- No `SIGTERM`, a API espera até 25 segundos pelas requisições em andamento e termina com código `0`; o compose espera 30 segundos antes de matá-la (`TRV-036`).
 
 - Matrícula responde `201 Created`; antes respondia `202 Accepted` para uma matrícula já gravada (`MAT-001`).
 - Acesso a dado de outro aluno (perfil, matrículas, pagamentos) e matrícula feita por `Instructor` respondem `403 Forbidden`; antes respondiam `409 Conflict`. Conflitos de estado, como processar um pagamento já pago, continuam `409` (`ALU-005`, `ALU-011`, `ALU-019`, `MAT-004`, `PAG-019`).
