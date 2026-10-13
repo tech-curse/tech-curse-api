@@ -14,7 +14,8 @@ public class CreateCourseCommandValidator : AbstractValidator<CreateCourseComman
             .NotEmpty().WithMessage("A descrição é obrigatória.");
 
         RuleFor(c => c.Categoria)
-            .NotEmpty().WithMessage("A categoria é obrigatória.");
+            .NotEmpty().WithMessage("A categoria é obrigatória.")
+            .MaximumLength(50).WithMessage("A categoria deve ter no máximo 50 caracteres.");
 
         RuleFor(c => c.CargaHoraria)
             .GreaterThan(0).WithMessage("A carga horária deve ser maior que zero.");

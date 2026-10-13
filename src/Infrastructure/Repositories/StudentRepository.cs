@@ -21,12 +21,27 @@ public class StudentRepository : IStudentRepository
 
         var totalCount = await query.CountAsync();
 
-        var items = await query
+        var items = await OrdenarAlunos(query, searchParams.SortBy, searchParams.SortDirection)
             .Skip((searchParams.PageNumber - 1) * searchParams.PageSize)
             .Take(searchParams.PageSize)
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    private static IQueryable<Student> OrdenarAlunos(IQueryable<Student> query, string sortBy, string sortDirection)
+    {
+        var decrescente = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase);
+
+        return (sortBy.ToLowerInvariant(), decrescente) switch
+        {
+            ("nome", false) => query.OrderBy(s => s.Nome).ThenBy(s => s.StudentId),
+            ("nome", true) => query.OrderByDescending(s => s.Nome).ThenBy(s => s.StudentId),
+            ("datacadastro", false) => query.OrderBy(s => s.DataCadastro).ThenBy(s => s.StudentId),
+            ("datacadastro", true) => query.OrderByDescending(s => s.DataCadastro).ThenBy(s => s.StudentId),
+            (_, true) => query.OrderByDescending(s => s.StudentId),
+            _ => query.OrderBy(s => s.StudentId)
+        };
     }
 
     public async Task<IEnumerable<Student>> GetAllAsync()

@@ -221,8 +221,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 **TRV-031: Página ou tamanho inválido é recusado**
 *Quando* `PageNumber` ou `PageSize` é menor que `1`
 *Então* a resposta é `422`, com `errors` apontando o parâmetro inválido
-**Status:** divergente: correção proposta para a Fase 3
-**Hoje:** `PageNumber` = `0` gera um `OFFSET` negativo, que o PostgreSQL recusa: `500`. `PageSize` = `0` divide por zero no cálculo de `totalPages`, que, havendo registros, sai como `2147483647`, com `hasNextPage` = `true`. O catálogo do web troca uma página inválida da URL por `1`, então o `500` aparece só para quem chama a API diretamente.
+**Status:** implementado
 
 **TRV-032: Ordenação desconhecida cai no padrão**
 *Quando* `SortBy` não é um dos campos aceitos pela listagem
@@ -336,7 +335,6 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `TRV-031` | Página `0` dá `500`; tamanho `0` gera `totalPages` sem sentido | `422` para página ou tamanho menor que `1` | Fase 3 |
 | `TRV-013` | Limite por IP vê só o IP do proxy | Tratar `X-Forwarded-For` vindo do Nginx | Fase 6 |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
 | `TRV-025` | API não sobe em `Production`; pagamentos sempre registrados | `Payments:Enabled`, desligado por padrão | Antes do 1º deploy |

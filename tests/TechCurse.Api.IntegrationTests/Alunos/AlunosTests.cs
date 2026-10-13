@@ -97,6 +97,29 @@ public sealed class AlunosTests(AmbienteDeTeste ambiente) : TesteDeIntegracao(am
         Assert.Equal(1, lista.GetProperty("totalCount").GetInt32());
     }
 
+    [Fact]
+    [Trait("Especificacao", "ALU-008")]
+    public async Task Listagem_de_alunos_tem_ordem_estavel()
+    {
+        var admin = ClienteAutenticado((await CriarUsuarioEEntrarAsync("Admin")).AccessToken);
+        foreach (var nome in new[] { "Carla", "Ana", "Bruno" })
+        {
+            await RegistrarEEntrarAsync(nome: nome);
+        }
+
+        async Task<string[]> NomesAsync(string consulta) =>
+            (await admin.GetFromJsonAsync<JsonElement>($"/tech-curse/Student{consulta}", Cancelamento))
+                .GetProperty("items").EnumerateArray().Select(item => item.GetProperty("nome").GetString()!).ToArray();
+
+        Assert.Equal(["Carla", "Ana", "Bruno"], await NomesAsync(""));
+        Assert.Equal(["Ana", "Bruno", "Carla"], await NomesAsync("?SortBy=nome"));
+        Assert.Equal(["Carla", "Bruno", "Ana"], await NomesAsync("?SortBy=nome&SortDirection=desc"));
+        Assert.Equal(["Bruno", "Ana", "Carla"], await NomesAsync("?SortBy=datacadastro&SortDirection=desc"));
+        var primeira = await NomesAsync("?PageNumber=1&PageSize=2");
+        var segunda = await NomesAsync("?PageNumber=2&PageSize=2");
+        Assert.Equal(["Carla", "Ana", "Bruno"], primeira.Concat(segunda));
+    }
+
     [Theory]
     [Trait("Especificacao", "ALU-009")]
     [InlineData("Student")]

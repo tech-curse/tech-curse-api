@@ -40,6 +40,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Corrigido
 
+- `PageNumber` ou `PageSize` menor que `1` responde `422` com o parâmetro em `errors`. Antes, página `0` respondia `500` e tamanho `0` devolvia um `totalPages` sem sentido (`TRV-031`).
+- A listagem de alunos tem ordem estável: por id, ou por `nome` / `datacadastro` com `SortBy` e `SortDirection`. Antes não tinha ordenação, e um aluno podia se repetir ou sumir entre páginas (`ALU-008`).
+- A criação de curso limita a categoria a 50 caracteres, como a edição; antes um curso podia ser criado com uma categoria que depois impedia a edição (`CUR-009`).
 - Requisições simultâneas de matrícula no mesmo curso (clique duplo) criavam matrículas duplicadas. Um índice único em (aluno, curso), na migration `MatriculaUnicaPorAlunoECurso`, barra a segunda, que responde `409` (`MAT-006`).
 
 ### Segurança
