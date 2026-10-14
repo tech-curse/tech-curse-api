@@ -275,8 +275,8 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *Quando* `Swagger:Enabled` = `false` ou a chave não existe
 *Então* `/swagger` responde `404`
 *E* desenvolvimento e staging ligam a chave; produção não a declara
-**Status:** divergente: correção proposta para a Fase 6 (ambientes)
-**Hoje:** o Swagger aparece quando o ambiente se chama `Development` ou `Homolog`. Um staging com outro nome, como o `Staging` previsto para a Fase 6, fica sem Swagger.
+*E* o nome do ambiente não liga o Swagger: em `Development`, sem a chave, ele também responde `404`
+**Status:** implementado
 
 **TRV-033: Gateway simulado nunca em produção**
 *Dado* que o único gateway de pagamento disponível é o simulado
@@ -338,7 +338,6 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 | --- | --- | --- | --- |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
 | `TRV-025` | API não sobe em `Production`; pagamentos sempre registrados | `Payments:Enabled`, desligado por padrão | Antes do 1º deploy |
-| `TRV-026` | Swagger decidido pelos nomes de ambiente `Development` e `Homolog` | `Swagger:Enabled`, desligado por padrão | Fase 6 |
 | `TRV-033` | Trava derruba a API em `Production` mesmo sem pagamentos | Trava só quando `Payments:Enabled` = `true` com o gateway simulado | Antes do 1º deploy |
 | `TRV-039` | Segredos ainda sem lugar definido fora do desenvolvimento | Só no `.env` de cada ambiente na VPS; pipeline e CI sem segredos da aplicação | Fases 6 e 7 |
 | `TRV-035` | Sem forma de criar o primeiro Admin fora de `Development` | Comando avulso na imagem da release | Antes do 1º deploy |

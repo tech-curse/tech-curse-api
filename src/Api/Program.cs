@@ -42,7 +42,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseCors(CorsSetup.PoliticaFrontend);
 
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Homolog"))
+if (app.Configuration.GetValue("Swagger:Enabled", false))
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Tech Curse API v1"));
