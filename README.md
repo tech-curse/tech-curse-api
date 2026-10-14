@@ -6,7 +6,7 @@
 
 API REST para uma plataforma de cursos — catálogo, estudantes, matrículas e pagamentos — em .NET 10 / C# 14, com Clean Architecture, CQRS por Vertical Slices (MediatR), PostgreSQL, Redis e autenticação JWT sobre ASP.NET Core Identity. O front-end é o [tech-curse-web](https://github.com/tech-curse/tech-curse-web).
 
-> **Escopo.** Projeto pessoal, usado por um grupo pequeno de pessoas e mantido como portfólio. O gateway de pagamento é **simulado** (`SimulatedPaymentGatewayAdapter`) e, por isso, a aplicação **se recusa a subir com `ASPNETCORE_ENVIRONMENT=Production`**: um gateway que fabrica respostas confirmaria cobranças que nunca aconteceram. A decisão é tirar o módulo de pagamentos de produção até existir um gateway real ([issue #1](https://github.com/tech-curse/tech-curse-api/issues/1)).
+> **Escopo.** Projeto pessoal, usado por um grupo pequeno de pessoas e mantido como portfólio. O gateway de pagamento é **simulado** (`SimulatedPaymentGatewayAdapter`) e, por isso, o módulo de pagamentos é ligado por `Payments:Enabled` e fica **desligado em produção**: um gateway que fabrica respostas confirmaria cobranças que nunca aconteceram. Se alguém ligar a chave com `ASPNETCORE_ENVIRONMENT=Production`, a API se recusa a subir. O módulo volta para produção quando existir um gateway real ([issue #1](https://github.com/tech-curse/tech-curse-api/issues/1)).
 
 ## Sumário
 
@@ -217,7 +217,7 @@ O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/); a versão
 
 ## Decisões e limitações conhecidas
 
-- **Gateway de pagamento simulado.** Não há integração com um provedor real, e a aplicação aborta em `Production` por isso. O módulo de pagamentos vai ficar fora de produção até a [issue #1](https://github.com/tech-curse/tech-curse-api/issues/1).
+- **Gateway de pagamento simulado.** Não há integração com um provedor real, então o módulo de pagamentos fica desligado em produção (`Payments:Enabled`), e a API aborta em `Production` se ele for ligado. Fica assim até a [issue #1](https://github.com/tech-curse/tech-curse-api/issues/1).
 - **Soft delete restrito ao aluno.** Um aluno removido não faz seus pagamentos sumirem de consultas e relatórios.
 - **Migrations aplicadas no startup.** Uma falha de migration impede a API de subir. Com várias réplicas, o caminho adequado seria um job de migração dedicado antes do rollout.
 - **Rate limiting em memória, por instância.** Com N réplicas, o limite efetivo é N vezes o configurado.

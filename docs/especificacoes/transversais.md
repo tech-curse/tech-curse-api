@@ -267,7 +267,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *Então* ela sobe e responde normalmente, as rotas de `/tech-curse/Payment` respondem `404` e não aparecem no Swagger
 *Quando* sobe com `Payments:Enabled` = `true`
 *Então* as rotas de pagamento estão disponíveis
-**Status:** planejado (antes do primeiro deploy em produção; issue #1). Hoje a chave não existe: as rotas de pagamento estão sempre registradas, e a API se recusa a subir em `Production` (ver `TRV-033`).
+**Status:** implementado. Com a chave desligada, o `PaymentController` sai da aplicação (`PagamentosSetup`): as rotas não existem para o roteamento nem para o Swagger. O `.env.example` de desenvolvimento liga a chave.
 
 **TRV-026: Swagger ligado por configuração**
 *Quando* `Swagger:Enabled` = `true`
@@ -284,7 +284,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *Então* a aplicação falha no startup, com uma mensagem que diz que não há gateway real configurado
 *Quando* sobe em `Production` com os pagamentos desligados
 *Então* sobe normalmente (`TRV-025`)
-**Status:** planejado (junto com `TRV-025`; issue #1). Hoje a trava derruba a API em `Production` mesmo com os pagamentos desligados, porque a chave ainda não existe. A trava olha o nome do ambiente de propósito: é a segunda barreira, para o caso de a chave ser ligada por engano em produção, e um gateway que fabrica aprovações confirmaria cobranças que nunca aconteceram.
+**Status:** implementado. Em `Production` o gateway simulado nunca é registrado, com a chave ligada ou não. A trava olha o nome do ambiente de propósito: é a segunda barreira, para o caso de a chave ser ligada por engano em produção, e um gateway que fabrica aprovações confirmaria cobranças que nunca aconteceram.
 
 ### Configuração e processos (Twelve-Factor)
 
@@ -337,8 +337,6 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
-| `TRV-025` | API não sobe em `Production`; pagamentos sempre registrados | `Payments:Enabled`, desligado por padrão | Antes do 1º deploy |
-| `TRV-033` | Trava derruba a API em `Production` mesmo sem pagamentos | Trava só quando `Payments:Enabled` = `true` com o gateway simulado | Antes do 1º deploy |
 | `TRV-039` | Segredos ainda sem lugar definido fora do desenvolvimento | Só no `.env` de cada ambiente na VPS; pipeline e CI sem segredos da aplicação | Fases 6 e 7 |
 | `TRV-035` | Sem forma de criar o primeiro Admin fora de `Development` | Comando avulso na imagem da release | Antes do 1º deploy |
 | `TRV-038` | Só log JSON no stdout | Logs também, mais traces e métricas, via OTLP quando configurado | Fase 8 |

@@ -18,7 +18,8 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
+    })
+    .AddPagamentosSetup(builder.Configuration);
 
 builder.Services.AddSerilogSetup(builder.Configuration);
 builder.Services.AddEFCoreSetup(builder.Configuration);

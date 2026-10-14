@@ -117,8 +117,9 @@ Configuração vem de variáveis de ambiente / connection strings, não de `apps
 - `RateLimiting:Enabled` (padrão `true`), `RateLimiting:GlobalPermitLimit` (200), `RateLimiting:GlobalWindowSeconds` (60), `RateLimiting:AuthPermitLimit` (10), `RateLimiting:AuthWindowSeconds` (60)
 - `ForwardedHeaders:KnownProxies` e `ForwardedHeaders:KnownNetworks` — de quem aceitar `X-Forwarded-*` (IPs e redes CIDR, separados por vírgula); vazio aceita só do loopback
 - `Swagger:Enabled` — publica o Swagger em `/swagger` (padrão `false`; desenvolvimento e staging ligam, produção não declara). Nunca pelo nome do ambiente (`TRV-026`)
+- `Payments:Enabled` — liga o módulo de pagamentos (padrão `false`). Desligado, o `PaymentController` sai da aplicação (`PagamentosSetup`) e as rotas respondem 404 (`TRV-025`). Desenvolvimento e staging ligam; produção não declara
 - `Cors:AllowedOrigins` — origens permitidas para o front-end, separadas por vírgula (ex.: `http://localhost:4200`). Vazio ou ausente desliga o CORS na prática
-- `ASPNETCORE_ENVIRONMENT` — **não use `Production`** sem antes implementar um gateway de pagamento real; ver "Comportamento de startup"
+- `ASPNETCORE_ENVIRONMENT` — em `Production`, a API não sobe com `Payments:Enabled` ligado; ver "Comportamento de startup"
 
 Em variáveis de ambiente essas chaves chegam como `Jwt__SigningKey`, `ConnectionStrings__APITechCurse`, etc.
 
@@ -153,7 +154,7 @@ O que a suíte anterior ensinou e vale para a próxima:
 
 Dois pontos em que a aplicação **se recusa a subir**, ambos deliberados:
 
-- **`AddInfrastructure` aborta em Production.** Não existe adaptador de gateway de pagamento real no projeto — só `SimulatedPaymentGatewayAdapter`, que fabrica respostas. Registrá-lo em Production faria a API confirmar cobranças que nunca aconteceram, então `src/Infrastructure/DependencyInjection.cs` lança `InvalidOperationException` quando `environment.IsProduction()`. O throw acontece na montagem do container, antes de `builder.Build()`. Consequência prática: **subir com `ASPNETCORE_ENVIRONMENT=Production` derruba a aplicação inteira**, não apenas o módulo financeiro. **Decisão de 2026-10-08:** o módulo de pagamentos sai de produção até existir um gateway real ([issue #1](https://github.com/tech-curse/tech-curse-api/issues/1)); a trava será trocada por isso antes do primeiro deploy, sem nunca registrar o adaptador simulado em `Production`.
+- **`AddInfrastructure` aborta em Production com os pagamentos ligados.** Não existe adaptador de gateway de pagamento real no projeto — só `SimulatedPaymentGatewayAdapter`, que fabrica respostas. Registrá-lo em Production faria a API confirmar cobranças que nunca aconteceram. Por isso, em `Production`, `src/Infrastructure/DependencyInjection.cs` nunca registra o adaptador simulado e lança `InvalidOperationException` se `Payments:Enabled` estiver ligado (`TRV-033`), antes de `builder.Build()`. Com a chave desligada, a API sobe sem o módulo de pagamentos. **Decisão de 2026-10-08:** o módulo fica fora de produção até existir um gateway real ([issue #1](https://github.com/tech-curse/tech-curse-api/issues/1)). A trava olha o nome do ambiente de propósito: é a segunda barreira, caso a chave seja ligada por engano.
 - **Falha de migration é fatal.** O bloco em `src/Api/Program.cs` loga e **relança**. Engolir a exceção deixava a API no ar servindo requisições contra um banco sem schema — foi exatamente assim que o bug de globalização passou despercebido.
 
 Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, que sobem juntas e disputam o mesmo banco. O caminho convencional é um job de migração dedicado antes do rollout. Não implementado de propósito.
