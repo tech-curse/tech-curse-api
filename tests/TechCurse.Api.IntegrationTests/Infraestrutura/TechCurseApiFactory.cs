@@ -21,6 +21,7 @@ public sealed class TechCurseApiFactory(string conexaoPostgres, string conexaoRe
         builder.UseSetting("Jwt:Audience", Audiencia);
         builder.UseSetting("Jwt:SigningKey", ChaveDeAssinatura);
         builder.UseSetting("RateLimiting:Enabled", "false");
+        builder.UseSetting("Payments:Enabled", "true");
         builder.UseSetting("Cors:AllowedOrigins", "http://localhost:4200");
     }
 }

@@ -22,17 +22,19 @@ namespace TechCurse.Infrastructure
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICacheService, RedisCacheService>();
 
-            if (environment.IsProduction())
+            if (!environment.IsProduction())
+            {
+                services.AddScoped<IPaymentGatewayAdapter, SimulatedPaymentGatewayAdapter>();
+            }
+            else if (configuration.GetValue("Payments:Enabled", false))
             {
                 throw new InvalidOperationException(
-                    "Nenhum gateway de pagamento real está configurado para o ambiente de Produção. " +
+                    "Payments:Enabled está ligado, mas nenhum gateway de pagamento real está configurado para o ambiente de Produção. " +
                     "A única implementação disponível de IPaymentGatewayAdapter é o " +
                     "SimulatedPaymentGatewayAdapter, que apenas simula transações e não realiza " +
-                    "cobranças reais. Implemente e registre um adaptador de gateway real em " +
-                    "TechCurse.Infrastructure.ExternalServices antes de subir a aplicação em Produção.");
+                    "cobranças reais. Desligue Payments:Enabled ou implemente e registre um adaptador de gateway real em " +
+                    "TechCurse.Infrastructure.ExternalServices.");
             }
-
-            services.AddScoped<IPaymentGatewayAdapter, SimulatedPaymentGatewayAdapter>();
 
             return services;
         }
