@@ -6,6 +6,10 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não lançado]
 
+### Segurança
+
+- ASP.NET Core, EF Core e pacotes relacionados de 10.0.12 para 10.0.13, SDK 10.0.402 e runtime da imagem 10.0.13: corrigem vulnerabilidades em `System.Security.Cryptography.Xml` e `System.Security.Cryptography.Pkcs`, dependências do Data Protection (GHSA-846f-f764-76mx, GHSA-7hqp-7c5m-4vq6, GHSA-c399-9853-6jmj, GHSA-r955-8q5j-3h83, GHSA-2fmv-rv2c-59x7).
+
 ### Adicionado
 
 - Comandos administrativos na imagem da API: `migrar` aplica as migrations e cria as roles, e `criar-admin` cria o primeiro Admin a partir de `CriarAdmin__Email` e `CriarAdmin__Password` (`TRV-024`, `TRV-035`). O compose de desenvolvimento roda o `migrar` antes da API.

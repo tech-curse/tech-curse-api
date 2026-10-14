@@ -172,7 +172,7 @@ Um ponto em que a aplicação **se recusa a subir**, deliberado (fora a configur
 
 ## Imagem e entrega
 
-**Imagem** (`Dockerfile` na raiz): build multi-stage com o SDK `10.0.401-noble` (a versão do `global.json`) e runtime `aspnet:10.0.12-noble-chiseled-extra`, sem shell nem gerenciador de pacotes, com usuário não root (`app`, UID 1654) e porta `8080`. As versões das imagens base são exatas, e o Dependabot as acompanha. O restore roda numa camada própria, só com os `.csproj`, para o cache do Docker reaproveitá-la enquanto as dependências não mudam.
+**Imagem** (`Dockerfile` na raiz): build multi-stage com o SDK `10.0.402-noble` (a versão do `global.json`) e runtime `aspnet:10.0.13-noble-chiseled-extra`, sem shell nem gerenciador de pacotes, com usuário não root (`app`, UID 1654) e porta `8080`. As versões das imagens base são exatas, e o Dependabot as acompanha. O restore roda numa camada própria, só com os `.csproj`, para o cache do Docker reaproveitá-la enquanto as dependências não mudam.
 
 **Healthcheck sem shell:** a imagem chiseled não tem `curl` nem `wget`, então o `HEALTHCHECK`, na forma exec, chama `dotnet /app/TechCurse.Sonda.dll`. A sonda (`src/Sonda`) é um console .NET mínimo que faz `GET /health/ready` e sai com `0` ou `1`. Custa a partida de um runtime a cada 30 s (~0,1 s); em troca, a imagem continua sem shell. Ela não referencia nenhum outro projeto, e assim deve ficar.
 

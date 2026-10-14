@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.401-noble AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
@@ -14,7 +14,7 @@ COPY src/ src/
 RUN dotnet publish src/Api/TechCurse.Api.csproj -c Release --no-restore -o /app \
  && dotnet publish src/Sonda/TechCurse.Sonda.csproj -c Release --no-restore -o /app
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.12-noble-chiseled-extra
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble-chiseled-extra
 WORKDIR /app
 COPY --from=build /app .
 
