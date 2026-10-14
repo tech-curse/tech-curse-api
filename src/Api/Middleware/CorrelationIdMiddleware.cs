@@ -7,6 +7,8 @@ public class CorrelationIdMiddleware
     private readonly RequestDelegate _next;
     public const string CorrelationIdHeaderName = "X-Correlation-ID";
 
+    public const int TamanhoMaximo = 64;
+
     public CorrelationIdMiddleware(RequestDelegate next)
     {
         _next = next;
@@ -14,8 +16,8 @@ public class CorrelationIdMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var correlationId = context.Request.Headers[CorrelationIdHeaderName].FirstOrDefault()
-                            ?? Guid.NewGuid().ToString();
+        var recebido = context.Request.Headers[CorrelationIdHeaderName].FirstOrDefault();
+        var correlationId = EhValido(recebido) ? recebido! : Guid.NewGuid().ToString();
 
         using (LogContext.PushProperty("CorrelationId", correlationId))
         {
@@ -31,4 +33,9 @@ public class CorrelationIdMiddleware
             await _next(context);
         }
     }
+
+    private static bool EhValido(string? valor) =>
+        !string.IsNullOrEmpty(valor)
+        && valor.Length <= TamanhoMaximo
+        && valor.All(caractere => char.IsAsciiLetterOrDigit(caractere) || caractere == '-');
 }

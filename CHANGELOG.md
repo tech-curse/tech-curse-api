@@ -28,6 +28,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- Recusas de domínio (`4xx`) passam a ser registradas como aviso, sem a pilha de chamadas; `Error` fica para `500` e `504`. O SQL do EF Core deixa de ser registrado no nível `Information` (`TRV-040`).
+- `X-Correlation-ID` recebido com mais de 64 caracteres ou com caractere fora de letras, dígitos e hífen é trocado por um GUID novo, em vez de ir para os logs como veio (`TRV-006`).
 - **A API não altera mais o banco ao subir.** As migrations e as roles passam a ser aplicadas pelo comando `migrar`, inclusive o Admin de `Development` (`AUTH-038`). Fora do compose, rode `./scripts/com-env.sh dotnet run --project src/Api -- migrar` antes da API.
 - O módulo de pagamentos é ligado por `Payments:Enabled` (padrão `false`). Desligado, as rotas de `/tech-curse/Payment` respondem `404` e somem do Swagger. A API passa a subir em `Production` com os pagamentos desligados; com eles ligados, continua se recusando, porque o único gateway é o simulado (`TRV-025`, `TRV-033`). O `.env.example` de desenvolvimento liga a chave.
 - O Swagger é ligado por `Swagger:Enabled` (padrão `false`), não mais pelo nome do ambiente (`Development` ou `Homolog`). O `.env.example` de desenvolvimento liga a chave (`TRV-026`).

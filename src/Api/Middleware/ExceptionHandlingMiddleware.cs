@@ -26,14 +26,23 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ocorreu uma exceção não tratada.");
-            await HandleExceptionAsync(context, ex);
+            var statusCode = StatusDa(ex);
+
+            if (statusCode is HttpStatusCode.InternalServerError or HttpStatusCode.GatewayTimeout)
+            {
+                _logger.LogError(ex, "A requisição falhou com {StatusCode}.", (int)statusCode);
+            }
+            else
+            {
+                _logger.LogWarning("A requisição foi recusada com {StatusCode}: {Motivo}", (int)statusCode, ex.Message);
+            }
+
+            await HandleExceptionAsync(context, ex, statusCode);
         }
     }
 
-    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
-    {
-        var statusCode = exception switch
+    private static HttpStatusCode StatusDa(Exception exception) =>
+        exception switch
         {
             BadRequestException => HttpStatusCode.BadRequest,
             UnauthorizedException => HttpStatusCode.Unauthorized,
@@ -46,6 +55,8 @@ public class ExceptionHandlingMiddleware
             _ => HttpStatusCode.InternalServerError
         };
 
+    private static async Task HandleExceptionAsync(HttpContext context, Exception exception, HttpStatusCode statusCode)
+    {
         var problemDetails = new ProblemDetails
         {
             Detail = statusCode == HttpStatusCode.InternalServerError ? MensagemDeErroInesperado : exception.Message,
