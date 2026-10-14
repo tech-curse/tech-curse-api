@@ -2,6 +2,7 @@ using DotNet.Testcontainers.Configurations;
 using Npgsql;
 using Respawn;
 using StackExchange.Redis;
+using TechCurse.Api.Administracao;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 
@@ -23,6 +24,8 @@ public sealed class AmbienteDeTeste : IAsyncLifetime
 
     public TechCurseApiFactory Fabrica { get; private set; } = null!;
 
+    public string ConexaoPostgres => _postgres.GetConnectionString();
+
     public AmbienteDeTeste()
     {
         TestcontainersSettings.ResourceReaperEnabled = false;
@@ -35,7 +38,12 @@ public sealed class AmbienteDeTeste : IAsyncLifetime
         await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
 
         Fabrica = new TechCurseApiFactory(_postgres.GetConnectionString(), _redis.GetConnectionString());
-        Fabrica.CreateClient().Dispose();
+
+        var codigo = await ComandosAdministrativos.ExecutarAsync([ComandosAdministrativos.Migrar], Fabrica.Services, CancellationToken.None);
+        if (codigo != 0)
+        {
+            throw new InvalidOperationException($"O comando migrar terminou com código {codigo}.");
+        }
 
         await using var conexao = new NpgsqlConnection(_postgres.GetConnectionString());
         await conexao.OpenAsync();

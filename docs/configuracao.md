@@ -18,7 +18,7 @@ Em variáveis de ambiente, o separador de seção é `__`: `Jwt__SigningKey` cor
 | --- | --- | --- |
 | Padrão de política: igual em todo ambiente | `Logging:*`, `RateLimiting:*`, `Jwt:AccessTokenMinutes`, `Jwt:RefreshTokenDays`, `Swagger:Enabled` e `Payments:Enabled` (padrão `false` nos dois) | `appsettings.json` (versionado) |
 | Varia por ambiente, não secreto | `ASPNETCORE_ENVIRONMENT`, `Jwt__Issuer`, `Jwt__Audience`, `Cors__AllowedOrigins`, `ForwardedHeaders__KnownProxies`, `ForwardedHeaders__KnownNetworks`, `Swagger__Enabled`, `Payments__Enabled` e, quando existirem, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_RESOURCE_ATTRIBUTES` | Variável de ambiente; no `.env.example` **com** um valor de exemplo de desenvolvimento |
-| Segredo | `ConnectionStrings__APITechCurse`, `ConnectionStrings__RedisCache`, `Jwt__SigningKey`, `Seed__Admin__Email`, `Seed__Admin__Password`, `POSTGRES_PASSWORD` (do contêiner do PostgreSQL, no compose) e as credenciais do comando de criação do primeiro Admin (`TRV-035`) | Variável de ambiente; no `.env.example` **sem** valor |
+| Segredo | `ConnectionStrings__APITechCurse`, `ConnectionStrings__RedisCache`, `Jwt__SigningKey`, `Seed__Admin__Email`, `Seed__Admin__Password`, `POSTGRES_PASSWORD` (do contêiner do PostgreSQL, no compose) `CriarAdmin__Email` e `CriarAdmin__Password` (do comando `criar-admin`, `TRV-035`; passadas só na execução do comando) | Variável de ambiente; no `.env.example` **sem** valor |
 
 Uma chave nova entra no `appsettings.json` se tiver um padrão seguro, e sempre no `.env.example`. **Toda chave que a API lê está no `.env.example`**, para quem configura um ambiente novo ter a lista completa num lugar só.
 
@@ -42,11 +42,12 @@ Consequência: **os segredos da aplicação existem num lugar só por ambiente**
    - `ConnectionStrings__APITechCurse` e `ConnectionStrings__RedisCache`, apontando para o seu PostgreSQL e o seu Redis;
    - `Jwt__SigningKey`, gerada na hora com `openssl rand -base64 48`;
    - opcionalmente `Seed__Admin__Email` e `Seed__Admin__Password`, para ter um Admin local (`AUTH-038`).
-3. Rode a API com as variáveis do `.env`:
+3. Aplique as migrations com `./scripts/com-env.sh dotnet run --project src/Api -- migrar` (e de novo a cada migration nova).
+4. Rode a API com as variáveis do `.env`:
    - Git Bash, Linux ou macOS: `./scripts/com-env.sh` (sem argumentos, executa `dotnet run --project src/Api`);
    - PowerShell: `./scripts/com-env.ps1`;
    - IDE: aponte a run configuration para o arquivo `.env`.
-4. Para outro comando com as mesmas variáveis, passe-o ao script, por exemplo: `./scripts/com-env.sh dotnet ef database update --project src/Infrastructure --startup-project src/Api`.
+5. Para outro comando com as mesmas variáveis, passe-o ao script, por exemplo: `./scripts/com-env.sh dotnet ef database update --project src/Infrastructure --startup-project src/Api`.
 
 O formato do `.env` é uma variável por linha, `CHAVE=valor`, sem aspas; linhas vazias e linhas que começam com `#` são ignoradas.
 

@@ -47,6 +47,12 @@ Rodar a API no host (Swagger em http://localhost:5130/swagger, liveness em `/hea
 ./scripts/com-env.sh
 ```
 
+A API **não altera o banco ao subir** (`TRV-024`). Antes da primeira execução, e a cada migration nova, aplique as migrations com o comando avulso `migrar`; no compose, o serviço `migrar` faz isso antes da API:
+
+```bash
+./scripts/com-env.sh dotnet run --project src/Api -- migrar
+```
+
 **A API só lê `appsettings.json` e variáveis de ambiente**; não existe `appsettings.<Ambiente>.json` nem User Secrets, e a API nunca lê o `.env`. Quem a inicia é que carrega o arquivo: `scripts/com-env.sh` (ou `.ps1`), a IDE ou o compose. Sem argumentos o script executa `dotnet run --project src/Api`; com argumentos, executa o comando dado com as variáveis do `.env`. Detalhes em [`docs/configuracao.md`](docs/configuracao.md). O repositório é público: não grave valor real em arquivo versionado, nem para "só testar". Toda chave nova entra no `.env.example`: segredo sem valor, o resto com um valor de exemplo de desenvolvimento.
 
 O `dotnet ef` monta o host da API, então precisa das mesmas variáveis: rode-o pelo script, e `database update` sem `--connection` vai para onde o `dotnet run` iria.
@@ -95,7 +101,7 @@ Pontos que se repetem em todo o código:
 - As chaves de cache de pagamento ficam em `ChavesDeCachePagamento` (prefixo `payments:v2:`); mudar o formato do `PaymentOutputDto` exige subir a versão do prefixo.
 - `PaymentRepository.UpdateAsync` marca só o pagamento como modificado (`Entry(payment).State = Modified`), não suas navegações — processar/estornar nunca reescreve linhas de matrícula, curso ou aluno.
 - **Idempotência**: endpoints de escrita de pagamento usam `[TypeFilter(typeof(IdempotencyFilterMiddleware))]`; o header `Idempotency-Key` é **obrigatório** (ausência → 400). A chave no Redis é `idempotency:<usuário>:<método>:<rota>:<chave>`, e a resposta fica guardada já serializada com as opções JSON do MVC (*camelCase*, enums como texto) por 6 minutos; a repetição devolve o mesmo status e o mesmo corpo, sem executar a ação. Erro nunca é guardado (`TRV-015` a `TRV-017`).
-- **Autorização**: RBAC por `[Authorize(Roles = "Admin|Instructor|Student")]` no controller; regras de "é o próprio usuário" ficam nos handlers via `ICurrentUserService`. As roles são criadas no startup pelo `DbInitializer`, que em `Development` também cria um Admin a partir de `Seed:Admin:Email`/`Seed:Admin:Password` (idempotente; nada fora de `Development`). A role de um usuário **nunca** vem do registro público: `POST /Auth/register` cria sempre `Student`, e só um Admin cria outras roles por `POST /Auth/users`.
+- **Autorização**: RBAC por `[Authorize(Roles = "Admin|Instructor|Student")]` no controller; regras de "é o próprio usuário" ficam nos handlers via `ICurrentUserService`. As roles são criadas pelo comando `migrar`, via `DbInitializer`, que em `Development` também cria um Admin a partir de `Seed:Admin:Email`/`Seed:Admin:Password` (idempotente; nada fora de `Development`). A role de um usuário **nunca** vem do registro público: `POST /Auth/register` cria sempre `Student`, e só um Admin cria outras roles por `POST /Auth/users`.
 - O cadastro de um `Student` (pelo registro público ou pelo `/Auth/users`) cria também a entidade `Student` ligada ao usuário. A criação é compensada, não transacional — escolha feita quando a suíte rodava sobre o provider em memória, que não suporta transação: se a atribuição da role ou a gravação do perfil falharem, o `AuthService` apaga o usuário recém-criado e relança o erro. E-mail que já pertence a um usuário responde 422 `DuplicateEmail`. **O `UserName` do Identity é o próprio e-mail**; o nome informado vai só para o perfil (`Student.Nome`, 1 a 100 caracteres, validado pelo `AuthService` com a chave `Nome`). Por isso os códigos `DuplicateUserName` e `InvalidUserName` do Identity são descartados da resposta: seriam duplicatas dos de e-mail.
 - **Pagamentos**: `PaymentStrategyFactory` resolve a `IPaymentStrategy` pelo `PaymentMethodType`; a elegibilidade é checada por `PaymentProcessableSpecification` antes de chamar o `IPaymentGatewayAdapter`.
 - **Soft delete**: `Student` tem global query filter (`!s.IsDeleted`) no `OnModelCreating`. Consultas de `Payment` que navegam até `Student` chamam `IgnoreQueryFilters()`; `Enrollment` e `Course` não têm filtro de soft delete — ver a seção "Soft delete: decisão tomada".
@@ -152,12 +158,17 @@ O que a suíte anterior ensinou e vale para a próxima:
 
 ## Comportamento de startup
 
-Dois pontos em que a aplicação **se recusa a subir**, ambos deliberados:
+Um ponto em que a aplicação **se recusa a subir**, deliberado (fora a configuração obrigatória ausente, `TRV-023`):
 
 - **`AddInfrastructure` aborta em Production com os pagamentos ligados.** Não existe adaptador de gateway de pagamento real no projeto — só `SimulatedPaymentGatewayAdapter`, que fabrica respostas. Registrá-lo em Production faria a API confirmar cobranças que nunca aconteceram. Por isso, em `Production`, `src/Infrastructure/DependencyInjection.cs` nunca registra o adaptador simulado e lança `InvalidOperationException` se `Payments:Enabled` estiver ligado (`TRV-033`), antes de `builder.Build()`. Com a chave desligada, a API sobe sem o módulo de pagamentos. **Decisão de 2026-10-08:** o módulo fica fora de produção até existir um gateway real ([issue #1](https://github.com/tech-curse/tech-curse-api/issues/1)). A trava olha o nome do ambiente de propósito: é a segunda barreira, caso a chave seja ligada por engano.
-- **Falha de migration é fatal.** O bloco em `src/Api/Program.cs` loga e **relança**. Engolir a exceção deixava a API no ar servindo requisições contra um banco sem schema — foi exatamente assim que o bug de globalização passou despercebido.
 
-Limitação conhecida: migrar no startup é frágil com múltiplas réplicas, que sobem juntas e disputam o mesmo banco. O caminho convencional é um job de migração dedicado antes do rollout. Não implementado de propósito.
+## Comandos administrativos
+
+`ComandosAdministrativos` (`src/Api/Administracao`) roda tarefas avulsas com a mesma imagem e a mesma configuração da release, decididas por `args[0]` logo depois do `builder.Build()`, antes de qualquer middleware. O processo termina com o código do comando e não sobe o servidor HTTP.
+
+- **`migrar`** (`TRV-024`): `MigrateAsync` e `DbInitializer.SeedDataAsync` (roles e, só em `Development`, o Admin de `Seed:Admin:*`). Idempotente. É o único lugar que altera o schema: o startup normal não migra, para o deploy migrar antes de trocar a versão e voltar à anterior se algo falhar. Por isso **toda migration precisa ser compatível com a versão anterior da API** (expandir antes, contrair numa release seguinte). O `AmbienteDeTeste` roda o `migrar` uma vez, antes da suíte.
+- **`criar-admin`** (`TRV-035`): cria um Admin com `CriarAdmin:Email` e `CriarAdmin:Password`, só de variáveis de ambiente. E-mail já existente não é alterado (código `0`); senha fora da política termina com `1`; credencial ausente ou argumento extra, com `2`. A senha nunca aparece em log.
+- Comando com argumento extra é recusado: credenciais nunca vão na linha de comando, onde ficariam no `ps` e no histórico do shell.
 
 ## Imagem e entrega
 

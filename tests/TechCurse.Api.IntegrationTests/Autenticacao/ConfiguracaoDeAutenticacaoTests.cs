@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using TechCurse.Api.Administracao;
 using TechCurse.Api.IntegrationTests.Infraestrutura;
 
 namespace TechCurse.Api.IntegrationTests.Autenticacao;
@@ -33,7 +34,7 @@ public sealed class ConfiguracaoDeAutenticacaoTests(AmbienteDeTeste ambiente) : 
     [InlineData("Development", true)]
     [InlineData("Staging", false)]
     [InlineData("Testing", false)]
-    public async Task Admin_de_desenvolvimento_so_e_semeado_em_Development(string ambienteDaApi, bool deveExistir)
+    public async Task Admin_de_desenvolvimento_so_e_semeado_pelo_migrar_em_Development(string ambienteDaApi, bool deveExistir)
     {
         var email = $"admin-semeado-{Guid.NewGuid():N}@teste.dev";
         await using var fabrica = Ambiente.Fabrica.WithWebHostBuilder(builder =>
@@ -43,7 +44,7 @@ public sealed class ConfiguracaoDeAutenticacaoTests(AmbienteDeTeste ambiente) : 
             builder.UseSetting("Seed:Admin:Password", SenhaValida);
         });
 
-        fabrica.CreateClient().Dispose();
+        Assert.Equal(0, await ComandosAdministrativos.ExecutarAsync([ComandosAdministrativos.Migrar], fabrica.Services, Cancelamento));
 
         using var escopo = Ambiente.Fabrica.Services.CreateScope();
         var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
