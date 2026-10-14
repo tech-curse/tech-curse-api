@@ -90,7 +90,15 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 **TRV-006: Identificador de correlação vindo de fora é validado**
 *Quando* o `X-Correlation-ID` recebido tem mais de 64 caracteres, ou caracteres fora de letras, dígitos e hífen
 *Então* a API o descarta e gera um GUID novo
-**Status:** planejado (Fase 8, observabilidade). Hoje qualquer valor é aceito e vai para os logs como veio.
+**Status:** implementado
+
+**TRV-040: Recusa esperada não é registrada como erro**
+*Quando* a resposta vem de uma exceção de domínio com status `4xx` (`400`, `401`, `403`, `404`, `409`, `422`)
+*Então* o log é um aviso (`Warning`) com o status e o motivo, sem a pilha de chamadas
+*Quando* é um `500` ou um `504`
+*Então* o log é um erro (`Error`) com a exceção completa
+*E* o SQL executado pelo EF Core não é registrado no nível `Information`
+**Status:** implementado. Alertas olham o nível `Error`: uma tentativa de login sem sessão não pode acordar ninguém.
 
 ### CORS
 

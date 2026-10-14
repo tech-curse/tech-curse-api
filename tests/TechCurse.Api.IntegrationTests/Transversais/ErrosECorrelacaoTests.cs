@@ -4,7 +4,9 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TechCurse.Api.IntegrationTests.Infraestrutura;
+using TechCurse.Api.Middleware;
 using TechCurse.Application.Interfaces;
 
 namespace TechCurse.Api.IntegrationTests.Transversais;
@@ -91,6 +93,83 @@ public sealed class ErrosECorrelacaoTests(AmbienteDeTeste ambiente) : TesteDeInt
 
         Assert.True(Guid.TryParse(semCabecalho.Headers.GetValues("X-Correlation-ID").Single(), out _));
         Assert.Equal("minha-correlacao-123", ecoada.Headers.GetValues("X-Correlation-ID").Single());
+    }
+
+    [Theory]
+    [Trait("Especificacao", "TRV-006")]
+    [InlineData("abc def")]
+    [InlineData("<script>alert(1)</script>")]
+    [InlineData("valor;outro")]
+    [InlineData("sessao_123")]
+    public async Task Identificador_de_correlacao_com_caractere_invalido_e_trocado(string recebido)
+    {
+        using var requisicao = new HttpRequestMessage(HttpMethod.Get, "/health/live");
+        requisicao.Headers.TryAddWithoutValidation("X-Correlation-ID", recebido);
+
+        var resposta = await Cliente.SendAsync(requisicao, Cancelamento);
+
+        Assert.True(Guid.TryParse(resposta.Headers.GetValues("X-Correlation-ID").Single(), out _));
+    }
+
+    [Fact]
+    [Trait("Especificacao", "TRV-006")]
+    public async Task Identificador_de_correlacao_vale_ate_64_caracteres()
+    {
+        var limite = new string('a', CorrelationIdMiddleware.TamanhoMaximo);
+        using var noLimite = new HttpRequestMessage(HttpMethod.Get, "/health/live");
+        noLimite.Headers.Add("X-Correlation-ID", limite);
+        using var acima = new HttpRequestMessage(HttpMethod.Get, "/health/live");
+        acima.Headers.Add("X-Correlation-ID", limite + "a");
+
+        var aceita = await Cliente.SendAsync(noLimite, Cancelamento);
+        var trocada = await Cliente.SendAsync(acima, Cancelamento);
+
+        Assert.Equal(limite, aceita.Headers.GetValues("X-Correlation-ID").Single());
+        Assert.True(Guid.TryParse(trocada.Headers.GetValues("X-Correlation-ID").Single(), out _));
+    }
+
+    [Fact]
+    [Trait("Especificacao", "TRV-040")]
+    public async Task Recusa_esperada_e_registrada_como_aviso_sem_a_pilha()
+    {
+        var logger = new LoggerQueGuarda<ExceptionHandlingMiddleware>();
+        await using var fabrica = Ambiente.Fabrica.WithWebHostBuilder(builder => builder.ConfigureTestServices(servicos =>
+            servicos.AddSingleton<ILogger<ExceptionHandlingMiddleware>>(logger)));
+        using var cliente = fabrica.CreateClient();
+        var sessao = await RegistrarEEntrarAsync();
+        using var requisicao = new HttpRequestMessage(HttpMethod.Get, "/tech-curse/Course/999999");
+        requisicao.Headers.Authorization = new("Bearer", sessao.AccessToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await cliente.SendAsync(requisicao, Cancelamento)).StatusCode);
+
+        var evento = Assert.Single(logger.Eventos);
+        Assert.Equal(LogLevel.Warning, evento.Nivel);
+        Assert.Null(evento.Excecao);
+        Assert.Contains("404", evento.Mensagem);
+        Assert.Contains("Curso não encontrado.", evento.Mensagem);
+    }
+
+    [Fact]
+    [Trait("Especificacao", "TRV-040")]
+    public async Task Falha_inesperada_e_registrada_como_erro_com_a_excecao()
+    {
+        var logger = new LoggerQueGuarda<ExceptionHandlingMiddleware>();
+        await using var fabrica = Ambiente.Fabrica.WithWebHostBuilder(builder => builder.ConfigureTestServices(servicos =>
+        {
+            servicos.AddScoped<ICourseRepository, RepositorioDeCursosQueFalha>();
+            servicos.AddSingleton<ILogger<ExceptionHandlingMiddleware>>(logger);
+        }));
+        using var cliente = fabrica.CreateClient();
+        var sessao = await RegistrarEEntrarAsync();
+        using var requisicao = new HttpRequestMessage(HttpMethod.Get, "/tech-curse/Course");
+        requisicao.Headers.Authorization = new("Bearer", sessao.AccessToken);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, (await cliente.SendAsync(requisicao, Cancelamento)).StatusCode);
+
+        var evento = Assert.Single(logger.Eventos);
+        Assert.Equal(LogLevel.Error, evento.Nivel);
+        Assert.NotNull(evento.Excecao);
+        Assert.Contains("500", evento.Mensagem);
     }
 
     [Theory]
