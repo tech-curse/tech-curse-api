@@ -20,6 +20,7 @@ builder.Services.AddControllers()
     })
     .AddPagamentosSetup(builder.Configuration);
 
+builder.AddTelemetriaSetup();
 builder.Services.AddSerilogSetup(builder.Configuration);
 builder.Services.AddEFCoreSetup(builder.Configuration);
 builder.Services.AddIdentityAuthenticationSetup(builder.Configuration);

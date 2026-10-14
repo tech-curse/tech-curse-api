@@ -13,7 +13,7 @@ public static class SerilogSetup
                 .ReadFrom.Configuration(configuration)
                 .Enrich.FromLogContext()
                 .WriteTo.Console(new JsonFormatter());
-        });
+        }, writeToProviders: true);
 
         return services;
     }

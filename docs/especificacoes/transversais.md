@@ -338,14 +338,13 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *E* sem essa variável, nada é exportado e a API funciona normalmente
 *E* cada log emitido durante uma requisição traz o `TraceId` e o `SpanId` dela, para ir do log ao trace no Grafana
 *E* a API não conhece Loki, Tempo nem Mimir: o coletor OpenTelemetry decide o destino de cada sinal
-**Status:** planejado (Fase 8). Hoje só existe o log JSON no stdout (Serilog).
+**Status:** implementado (`TelemetriaSetup`). Os traces cobrem as requisições, o PostgreSQL (Npgsql) e o HTTP de saída; as sondas de `/health` não geram trace. O Redis fica sem instrumentação, porque o pacote ainda não tem versão estável. O log do stdout leva o `TraceId` e o `SpanId` pelo Serilog; o exportado via OTLP, pelo SDK.
 
 ## Divergências
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
 | `TRV-039` | Segredos ainda sem lugar definido fora do desenvolvimento | Só no `.env` de cada ambiente na VPS; pipeline e CI sem segredos da aplicação | Fases 6 e 7 |
-| `TRV-038` | Só log JSON no stdout | Logs também, mais traces e métricas, via OTLP quando configurado | Fase 8 |
 
 ## Fora de escopo
 
