@@ -42,6 +42,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Removido
 
+- `UseHttpsRedirection()`: o TLS termina no Nginx, e a API atende só HTTP (`TRV-037`).
 - Resposta `409` para "perfil de estudante sem usuário" no registro: a FK obrigatória com cascata torna esse estado impossível (`AUTH-006`, removido).
 - `LICENSE`.
 - `docs/diagram.png`, desatualizado (mostrava SQL Server e Seq); o diagrama em Mermaid do README é a referência.
@@ -62,6 +63,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Segurança
 
+- Atrás do proxy reverso, o IP do cliente vem de `X-Forwarded-For`, aceito só dos proxies configurados em `ForwardedHeaders:KnownProxies` e `ForwardedHeaders:KnownNetworks`. Sem isso, o limite de requisições contaria todos os usuários como o IP do Nginx (`TRV-013`).
 - O refresh token sai do corpo das respostas e passa a viajar só num cookie `HttpOnly`, `Secure`, `SameSite=Strict`, restrito a `/tech-curse/Auth`, fora do alcance do JavaScript. `POST /Auth/refresh` e `POST /Auth/logout` leem o cookie, sem corpo; o refresh não recebe mais o access token. O access token passa de 2 horas para 15 minutos (`Jwt:AccessTokenMinutes`) (`AUTH-034`).
 - Sessões de autenticação em tabelas próprias (`SessoesDeAutenticacao` e `RefreshTokens`), no lugar do `AspNetUserTokens`. Um usuário pode ficar logado em vários aparelhos, e encerrar um não afeta os outros (`AUTH-031`); antes, um novo login derrubava o anterior. A reapresentação de um refresh token já usado revoga a sessão inteira, inclusive o token mais novo (`AUTH-033`).
 - Política de senha: de 12 a 128 caracteres, mantendo minúscula, maiúscula, número e símbolo; antes o mínimo era 8. Vale para senhas novas: contas existentes continuam entrando (`AUTH-004`).

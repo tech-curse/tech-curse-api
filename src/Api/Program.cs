@@ -27,12 +27,15 @@ builder.Services.AddRedisCacheSetup(builder.Configuration);
 builder.Services.AddDataProtectionSetup();
 builder.Services.AddRateLimitingSetup(builder.Configuration);
 builder.Services.AddCorsSetup(builder.Configuration);
+builder.Services.AddForwardedHeadersSetup(builder.Configuration);
 
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocumentationSetup(builder.Configuration);
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -45,7 +48,6 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Homolog"))
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Tech Curse API v1"));
 }
 
-app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseRateLimiter();

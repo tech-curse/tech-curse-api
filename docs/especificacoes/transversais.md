@@ -137,7 +137,9 @@ Comportamentos que valem para toda a API, independentemente do recurso: formato 
 *Dado* a API atrás do Nginx do host
 *Quando* duas pessoas diferentes fazem requisições anônimas
 *Então* cada uma é contada no próprio limite, pelo IP de origem informado pelo proxy em `X-Forwarded-For`
-**Status:** planejado (Fase 6, ambientes). Sem o tratamento de cabeçalhos encaminhados, todas as requisições chegam com o IP do Nginx: o limite de autenticação (10 por minuto) passaria a valer para todos os usuários juntos.
+*E* `X-Forwarded-For` só é aceito de quem está em `ForwardedHeaders:KnownProxies` (IPs) ou `ForwardedHeaders:KnownNetworks` (redes CIDR), além do loopback; de qualquer outro remetente o cabeçalho é ignorado, para um cliente não escolher o próprio IP
+*E* um valor inválido nessas chaves impede a API de subir, com a chave e o valor na mensagem
+**Status:** implementado. Sem isso, todas as requisições chegariam com o IP do Nginx, e o limite de autenticação (10 por minuto) valeria para todos os usuários juntos.
 
 `RateLimiting:Enabled` = `false` desliga os dois limites. Isso existe para os testes e nunca é usado em ambiente real.
 
@@ -320,8 +322,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 **TRV-037: HTTP na porta configurada; TLS fica no proxy**
 *Então* a API atende HTTP na porta de `ASPNETCORE_HTTP_PORTS` (`8080` na imagem) e não redireciona para HTTPS
 *E* o esquema e o IP originais vêm de `X-Forwarded-Proto` e `X-Forwarded-For`, aceitos só do proxy reverso (`TRV-013`)
-**Status:** divergente: correção proposta para a Fase 6
-**Hoje:** `UseHttpsRedirection()` está no pipeline. Atrás do Nginx, que termina o TLS, a API não tem como saber que a conexão original era HTTPS.
+**Status:** implementado. O `UseHttpsRedirection()` saiu do pipeline, e o `UseForwardedHeaders()` é o primeiro middleware.
 
 **TRV-038: Telemetria com OpenTelemetry**
 *Então* os logs estruturados vão sempre para o stdout, em JSON, um evento por linha
@@ -335,14 +336,12 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `TRV-013` | Limite por IP vê só o IP do proxy | Tratar `X-Forwarded-For` vindo do Nginx | Fase 6 |
 | `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
 | `TRV-025` | API não sobe em `Production`; pagamentos sempre registrados | `Payments:Enabled`, desligado por padrão | Antes do 1º deploy |
 | `TRV-026` | Swagger decidido pelos nomes de ambiente `Development` e `Homolog` | `Swagger:Enabled`, desligado por padrão | Fase 6 |
 | `TRV-033` | Trava derruba a API em `Production` mesmo sem pagamentos | Trava só quando `Payments:Enabled` = `true` com o gateway simulado | Antes do 1º deploy |
 | `TRV-039` | Segredos ainda sem lugar definido fora do desenvolvimento | Só no `.env` de cada ambiente na VPS; pipeline e CI sem segredos da aplicação | Fases 6 e 7 |
 | `TRV-035` | Sem forma de criar o primeiro Admin fora de `Development` | Comando avulso na imagem da release | Antes do 1º deploy |
-| `TRV-037` | `UseHttpsRedirection()` atrás do proxy | HTTP puro; esquema e IP via `X-Forwarded-*` do proxy | Fase 6 |
 | `TRV-038` | Só log JSON no stdout | Logs também, mais traces e métricas, via OTLP quando configurado | Fase 8 |
 
 ## Fora de escopo
