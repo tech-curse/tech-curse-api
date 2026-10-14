@@ -116,6 +116,7 @@ Configuração vem de variáveis de ambiente / connection strings, não de `apps
 - `Jwt:RefreshTokenDays` — validade do refresh token e do cookie da sessão (padrão 7)
 - `RateLimiting:Enabled` (padrão `true`), `RateLimiting:GlobalPermitLimit` (200), `RateLimiting:GlobalWindowSeconds` (60), `RateLimiting:AuthPermitLimit` (10), `RateLimiting:AuthWindowSeconds` (60)
 - `ForwardedHeaders:KnownProxies` e `ForwardedHeaders:KnownNetworks` — de quem aceitar `X-Forwarded-*` (IPs e redes CIDR, separados por vírgula); vazio aceita só do loopback
+- `Swagger:Enabled` — publica o Swagger em `/swagger` (padrão `false`; desenvolvimento e staging ligam, produção não declara). Nunca pelo nome do ambiente (`TRV-026`)
 - `Cors:AllowedOrigins` — origens permitidas para o front-end, separadas por vírgula (ex.: `http://localhost:4200`). Vazio ou ausente desliga o CORS na prática
 - `ASPNETCORE_ENVIRONMENT` — **não use `Production`** sem antes implementar um gateway de pagamento real; ver "Comportamento de startup"
 

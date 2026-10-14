@@ -27,6 +27,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- O Swagger é ligado por `Swagger:Enabled` (padrão `false`), não mais pelo nome do ambiente (`Development` ou `Homolog`). O `.env.example` de desenvolvimento liga a chave (`TRV-026`).
 - As mensagens de erro do Identity (senha, e-mail duplicado ou inválido) passam a vir em português; antes vinham em inglês e apareciam assim no formulário do web (`AUTH-004`, `AUTH-005`, `AUTH-007`).
 - No `SIGTERM`, a API espera até 25 segundos pelas requisições em andamento e termina com código `0`; o compose espera 30 segundos antes de matá-la (`TRV-036`).
 
