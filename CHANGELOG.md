@@ -12,6 +12,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Telemetria com OpenTelemetry: com `OTEL_EXPORTER_OTLP_ENDPOINT`, a API exporta logs, traces (requisições, PostgreSQL e HTTP de saída) e métricas (ASP.NET Core, HTTP e runtime) via OTLP, identificada como `tech-curse-api` com a versão e o ambiente. Sem a variável, nada muda (`TRV-038`).
 - Comandos administrativos na imagem da API: `migrar` aplica as migrations e cria as roles, e `criar-admin` cria o primeiro Admin a partir de `CriarAdmin__Email` e `CriarAdmin__Password` (`TRV-024`, `TRV-035`). O compose de desenvolvimento roda o `migrar` antes da API.
 - `POST /Auth/logout`: encerra a sessão do refresh token informado e responde `204` sempre (`AUTH-032`).
 - Base de código importada: cursos, estudantes, matrículas e pagamentos, com autenticação JWT sobre ASP.NET Core Identity, PostgreSQL 17 e Redis.

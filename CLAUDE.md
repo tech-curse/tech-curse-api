@@ -124,6 +124,7 @@ Configuração vem de variáveis de ambiente / connection strings, não de `apps
 - `ForwardedHeaders:KnownProxies` e `ForwardedHeaders:KnownNetworks` — de quem aceitar `X-Forwarded-*` (IPs e redes CIDR, separados por vírgula); vazio aceita só do loopback
 - `Swagger:Enabled` — publica o Swagger em `/swagger` (padrão `false`; desenvolvimento e staging ligam, produção não declara). Nunca pelo nome do ambiente (`TRV-026`)
 - `Payments:Enabled` — liga o módulo de pagamentos (padrão `false`). Desligado, o `PaymentController` sai da aplicação (`PagamentosSetup`) e as rotas respondem 404 (`TRV-025`). Desenvolvimento e staging ligam; produção não declara
+- `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_RESOURCE_ATTRIBUTES` — telemetria (`TelemetriaSetup`, `TRV-038`). Vazio, nada é exportado e nenhum provedor do OpenTelemetry é registrado. Com o endereço, logs, traces e métricas vão por OTLP; o `service.name` é `tech-curse-api`, a versão vem do assembly e o ambiente, de `deployment.environment`. O Serilog escreve no stdout e repassa os eventos aos provedores do `ILogger` (`writeToProviders: true`); por isso o `TelemetriaSetup` limpa os provedores padrão (console, debug), senão cada log sairia duas vezes no stdout
 - `Cors:AllowedOrigins` — origens permitidas para o front-end, separadas por vírgula (ex.: `http://localhost:4200`). Vazio ou ausente desliga o CORS na prática
 - `ASPNETCORE_ENVIRONMENT` — em `Production`, a API não sobe com `Payments:Enabled` ligado; ver "Comportamento de startup"
 
