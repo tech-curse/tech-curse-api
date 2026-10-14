@@ -17,7 +17,7 @@ Em variáveis de ambiente, o separador de seção é `__`: `Jwt__SigningKey` cor
 | Tipo | Exemplos | Onde fica |
 | --- | --- | --- |
 | Padrão de política: igual em todo ambiente | `Logging:*`, `RateLimiting:*`, `Jwt:AccessTokenMinutes`, `Jwt:RefreshTokenDays` e, quando existirem, `Payments:Enabled` e `Swagger:Enabled` com valor `false` | `appsettings.json` (versionado) |
-| Varia por ambiente, não secreto | `ASPNETCORE_ENVIRONMENT`, `Jwt__Issuer`, `Jwt__Audience`, `Cors__AllowedOrigins` e, quando existirem, `Payments__Enabled`, `Swagger__Enabled`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_RESOURCE_ATTRIBUTES` | Variável de ambiente; no `.env.example` **com** um valor de exemplo de desenvolvimento |
+| Varia por ambiente, não secreto | `ASPNETCORE_ENVIRONMENT`, `Jwt__Issuer`, `Jwt__Audience`, `Cors__AllowedOrigins`, `ForwardedHeaders__KnownProxies`, `ForwardedHeaders__KnownNetworks` e, quando existirem, `Payments__Enabled`, `Swagger__Enabled`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_RESOURCE_ATTRIBUTES` | Variável de ambiente; no `.env.example` **com** um valor de exemplo de desenvolvimento |
 | Segredo | `ConnectionStrings__APITechCurse`, `ConnectionStrings__RedisCache`, `Jwt__SigningKey`, `Seed__Admin__Email`, `Seed__Admin__Password`, `POSTGRES_PASSWORD` (do contêiner do PostgreSQL, no compose) e as credenciais do comando de criação do primeiro Admin (`TRV-035`) | Variável de ambiente; no `.env.example` **sem** valor |
 
 Uma chave nova entra no `appsettings.json` se tiver um padrão seguro, e sempre no `.env.example`. **Toda chave que a API lê está no `.env.example`**, para quem configura um ambiente novo ter a lista completa num lugar só.
