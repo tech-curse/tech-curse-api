@@ -260,7 +260,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 **TRV-024: Migrations rodam como etapa do deploy, não no startup**
 *Quando* a API sobe
 *Então* ela não altera o schema do banco; as migrations são aplicadas por uma etapa explícita do deploy, antes da nova versão entrar no ar
-**Status:** planejado (Fase 7). Hoje o `Program.cs` aplica as migrations no startup e, se falharem, a API não sobe.
+**Status:** implementado. A etapa é o comando avulso `migrar` (`ComandosAdministrativos`), que aplica as migrations e cria as roles; no compose de desenvolvimento, o serviço `migrar` roda antes da API.
 
 **TRV-025: O módulo de pagamentos é ligado por configuração**
 *Quando* a API sobe com `Payments:Enabled` = `false` ou sem a chave
@@ -311,7 +311,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 *E* se já existe um usuário com esse e-mail, o comando não o altera, informa isso e termina com código `0`
 *E* se a senha não atende à política (`AUTH-004`), o comando termina com código diferente de `0` e diz o motivo
 *E* a senha nunca é aceita como argumento de linha de comando nem aparece em log
-**Status:** planejado (antes do primeiro deploy em produção; Fase 7). Hoje o único caminho é o seed de `Development` (`AUTH-038`), então uma produção nova não teria nenhum Admin para criar cursos e instrutores.
+**Status:** implementado. O comando é `criar-admin`, com `CriarAdmin__Email` e `CriarAdmin__Password`; argumento extra é recusado.
 
 **TRV-036: Encerramento limpo**
 *Quando* o processo recebe `SIGTERM`
@@ -336,9 +336,7 @@ As listagens paginadas (cursos, alunos, pagamentos) recebem pela query string `P
 
 | Cenário | Hoje | Proposta | Quando |
 | --- | --- | --- | --- |
-| `TRV-024` | Migrations no startup | Etapa explícita do deploy | Fase 7 |
 | `TRV-039` | Segredos ainda sem lugar definido fora do desenvolvimento | Só no `.env` de cada ambiente na VPS; pipeline e CI sem segredos da aplicação | Fases 6 e 7 |
-| `TRV-035` | Sem forma de criar o primeiro Admin fora de `Development` | Comando avulso na imagem da release | Antes do 1º deploy |
 | `TRV-038` | Só log JSON no stdout | Logs também, mais traces e métricas, via OTLP quando configurado | Fase 8 |
 
 ## Fora de escopo

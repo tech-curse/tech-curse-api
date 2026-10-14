@@ -8,6 +8,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Adicionado
 
+- Comandos administrativos na imagem da API: `migrar` aplica as migrations e cria as roles, e `criar-admin` cria o primeiro Admin a partir de `CriarAdmin__Email` e `CriarAdmin__Password` (`TRV-024`, `TRV-035`). O compose de desenvolvimento roda o `migrar` antes da API.
 - `POST /Auth/logout`: encerra a sessão do refresh token informado e responde `204` sempre (`AUTH-032`).
 - Base de código importada: cursos, estudantes, matrículas e pagamentos, com autenticação JWT sobre ASP.NET Core Identity, PostgreSQL 17 e Redis.
 - `.env.example` com todas as variáveis que a API lê: segredos sem valor, o resto com um valor de exemplo de desenvolvimento.
@@ -27,6 +28,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- **A API não altera mais o banco ao subir.** As migrations e as roles passam a ser aplicadas pelo comando `migrar`, inclusive o Admin de `Development` (`AUTH-038`). Fora do compose, rode `./scripts/com-env.sh dotnet run --project src/Api -- migrar` antes da API.
 - O módulo de pagamentos é ligado por `Payments:Enabled` (padrão `false`). Desligado, as rotas de `/tech-curse/Payment` respondem `404` e somem do Swagger. A API passa a subir em `Production` com os pagamentos desligados; com eles ligados, continua se recusando, porque o único gateway é o simulado (`TRV-025`, `TRV-033`). O `.env.example` de desenvolvimento liga a chave.
 - O Swagger é ligado por `Swagger:Enabled` (padrão `false`), não mais pelo nome do ambiente (`Development` ou `Homolog`). O `.env.example` de desenvolvimento liga a chave (`TRV-026`).
 - As mensagens de erro do Identity (senha, e-mail duplicado ou inválido) passam a vir em português; antes vinham em inglês e apareciam assim no formulário do web (`AUTH-004`, `AUTH-005`, `AUTH-007`).

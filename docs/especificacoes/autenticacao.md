@@ -286,9 +286,9 @@ Todas as rotas ficam sob `/tech-curse/Auth`. Corpo e resposta em JSON, com nomes
 
 **AUTH-038: Admin de desenvolvimento semeado só em Development**
 *Dado* `Seed:Admin:Email` e `Seed:Admin:Password` configurados
-*Quando* a API sobe em `Development`
+*Quando* o comando `migrar` (`TRV-024`) roda em `Development`
 *Então* existe um usuário `Admin` com esse e-mail (criado uma vez só)
-*Quando* a API sobe em qualquer outro ambiente
+*Quando* roda em qualquer outro ambiente
 *Então* nenhum Admin é semeado
 **Status:** implementado
 

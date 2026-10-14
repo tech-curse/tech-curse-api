@@ -104,15 +104,16 @@ O compose monta as connection strings da API a partir do `POSTGRES_USER` e do `P
 docker compose up postgres redis
 ```
 
-Preencha no `.env` as connection strings apontando para `localhost`, com o mesmo usuário e a mesma senha, e rode a API com o script, que carrega o `.env` e executa `dotnet run --project src/Api`:
+Preencha no `.env` as connection strings apontando para `localhost`, com o mesmo usuário e a mesma senha. Aplique as migrations e rode a API com o script, que carrega o `.env` e executa `dotnet run --project src/Api`:
 
 ```bash
+./scripts/com-env.sh dotnet run --project src/Api -- migrar
 ./scripts/com-env.sh
 ```
 
 No PowerShell, `./scripts/com-env.ps1`. Na IDE, aponte a run configuration para o arquivo `.env`. O script também roda outros comandos com as mesmas variáveis, por exemplo `./scripts/com-env.sh dotnet ef database update --project src/Infrastructure --startup-project src/Api`.
 
-As migrations são aplicadas no startup. O porquê desta estrutura, e de onde a configuração vem em cada ambiente, está em [`docs/configuracao.md`](docs/configuracao.md).
+A API não altera o banco ao subir: as migrations são aplicadas pelo comando `migrar`, que no compose roda sozinho antes da API. Rode-o de novo sempre que surgir uma migration nova. O porquê desta estrutura, e de onde a configuração vem em cada ambiente, está em [`docs/configuracao.md`](docs/configuracao.md).
 
 | Recurso | Endereço |
 | --- | --- |
@@ -120,9 +121,20 @@ As migrations são aplicadas no startup. O porquê desta estrutura, e de onde a 
 | Liveness | http://localhost:5130/health/live |
 | Readiness | http://localhost:5130/health/ready |
 
+### Comandos administrativos
+
+A mesma imagem da API roda duas tarefas avulsas, com a mesma configuração da release (`TRV-024`, `TRV-035`):
+
+| Comando | O que faz |
+| --- | --- |
+| `migrar` | Aplica as migrations pendentes e cria as roles. Idempotente. O deploy o roda antes de trocar a versão. |
+| `criar-admin` | Cria um `Admin` com `CriarAdmin__Email` e `CriarAdmin__Password`, lidos de variáveis de ambiente. Se o e-mail já existe, não altera nada. Não aceita argumentos. |
+
+No contêiner, o comando vai depois da imagem, por exemplo `docker compose run --rm -e CriarAdmin__Email -e CriarAdmin__Password api criar-admin`. Fora dele, `./scripts/com-env.sh dotnet run --project src/Api -- migrar`.
+
 ### Admin de desenvolvimento
 
-Em `Development`, a API cria um usuário `Admin` no startup a partir de `Seed:Admin:Email` e `Seed:Admin:Password`, lidos de variáveis de ambiente (`Seed__Admin__Email` e `Seed__Admin__Password` no `.env`). A criação é idempotente e não acontece em nenhum outro ambiente. Deixe as chaves vazias para não semear, ou troque a senha se a máquina for acessível a outras pessoas.
+Em `Development`, o comando `migrar` cria um usuário `Admin` a partir de `Seed:Admin:Email` e `Seed:Admin:Password`, lidos de variáveis de ambiente (`Seed__Admin__Email` e `Seed__Admin__Password` no `.env`). A criação é idempotente e não acontece em nenhum outro ambiente. Deixe as chaves vazias para não semear, ou troque a senha se a máquina for acessível a outras pessoas.
 
 ## Como testar
 
@@ -219,7 +231,7 @@ O projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/); a versão
 
 - **Gateway de pagamento simulado.** Não há integração com um provedor real, então o módulo de pagamentos fica desligado em produção (`Payments:Enabled`), e a API aborta em `Production` se ele for ligado. Fica assim até a [issue #1](https://github.com/tech-curse/tech-curse-api/issues/1).
 - **Soft delete restrito ao aluno.** Um aluno removido não faz seus pagamentos sumirem de consultas e relatórios.
-- **Migrations aplicadas no startup.** Uma falha de migration impede a API de subir. Com várias réplicas, o caminho adequado seria um job de migração dedicado antes do rollout.
+- **Migrations como etapa do deploy.** A API não altera o banco ao subir; o comando `migrar` roda antes da nova versão entrar no ar. As migrations precisam ser compatíveis com a versão anterior, que continua no ar até a troca e é para onde o deploy volta se a nova falhar.
 - **Rate limiting em memória, por instância.** Com N réplicas, o limite efetivo é N vezes o configurado.
 - **Um refresh token por usuário.** Um login em outro dispositivo invalida a sessão anterior.
 - **Sem testes automatizados, imagem de contêiner nem pipeline de entrega.** Estão sendo reconstruídos do zero; o CI de build e formatação já roda em todo pull request.

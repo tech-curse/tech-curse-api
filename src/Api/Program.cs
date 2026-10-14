@@ -1,11 +1,10 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.EntityFrameworkCore;
+using TechCurse.Api.Administracao;
 using TechCurse.Api.Configuration;
 using TechCurse.Api.Middleware;
 using TechCurse.Application;
 using TechCurse.Infrastructure;
-using TechCurse.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +34,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocumentationSetup(builder.Configuration);
 
 var app = builder.Build();
+
+if (ComandosAdministrativos.EhComando(args))
+{
+    Environment.ExitCode = await ComandosAdministrativos.ExecutarAsync(args, app.Services, CancellationToken.None);
+    await app.DisposeAsync();
+    return;
+}
 
 app.UseForwardedHeaders();
 
@@ -93,26 +99,5 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
         });
     }
 });
-
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-
-    var dbContext = services.GetRequiredService<TechCurseContext>();
-
-    try
-    {
-        dbContext.Database.Migrate();
-
-        await DbInitializer.SeedDataAsync(services);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Ocorreu um erro ao rodar as Migrations ou o Seed do banco de dados.");
-
-        throw;
-    }
-}
 
 app.Run();

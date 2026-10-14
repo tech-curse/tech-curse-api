@@ -27,20 +27,31 @@ services:
       timeout: 3s
       retries: 20
 
-  api:
+  migrar:
     build: .
     image: ${API_IMAGE:-tech-curse-api:dev}
+    command: ["migrar"]
     env_file: .env
-    environment:
+    environment: &conexoes
       ConnectionStrings__APITechCurse: "Host=postgres;Port=5432;Database=APITechCurse;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__RedisCache: "redis:6379"
-    ports:
-      - 127.0.0.1:5130:8080
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: "no"
+
+  api:
+    build: .
+    image: ${API_IMAGE:-tech-curse-api:dev}
+    env_file: .env
+    environment: *conexoes
+    ports:
+      - 127.0.0.1:5130:8080
+    depends_on:
+      migrar:
+        condition: service_completed_successfully
     stop_grace_period: 30s
 
 volumes:
